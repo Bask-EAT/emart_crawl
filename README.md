@@ -12,7 +12,7 @@ uvicorn main1:app --reload --port 8420
 
 5.ㅇㅇ
 
-
+```
 상품json 추출결과 예시
 {
     "category": "Fruits",
@@ -24,3 +24,4 @@ uvicorn main1:app --reload --port 8420
     "quantity": "100g 당 1,260원",
     "out_of_stock": "N"
 }
+```
