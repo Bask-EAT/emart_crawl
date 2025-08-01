@@ -1,16 +1,3 @@
 {
-    "Fruits": "6000213114",
-    "Vegetables": "6000213167",
-    "Rice_Grains_Nuts": "6000215152",
-    "Meat_Eggs": "6000215194",
-    "Seafood_DriedSeafood": "6000213469",
-    "Milk_Dairy": "6000213534",
-    "MealKits_ConvenienceFood": "6000213247",
-    "Kimchi_SideDishes_Deli": "6000213299",
-    "Water_Beverages_Alcohol": "6000213424",
-    "Coffee_Beans_Tea": "6000215245",
-    "Noodles_CannedGoods": "6000213319",
-    "Seasoning_Oil": "6000215286",
-    "Snacks_Treats": "6000213362",
-    "Bakery_Jam": "6000213412"
+    "Milk_Dairy": "6000213534"
 }
