@@ -15,13 +15,14 @@ uvicorn main1:app --reload --port 8420
 ```
 상품json 추출결과 예시
 {
-    "category": "Fruits",
-    "product_name": "데일리 사과 1.5kg (4~8입) 봉",
-    "product_address": "https://emart.ssg.com/item/itemView.ssg?itemId=1000633289875&siteNo=7009&salestrNo=2551",
-    "original_price": "18900",
-    "selling_price": "18900",
-    "image_url": "https://sitem.ssgcdn.com/75/98/28/item/1000633289875_i1_290.jpg",
-    "quantity": "100g 당 1,260원",
+    "id": "0000008486451",
+    "category": "Milk_Dairy",
+    "product_name": "[한국야쿠르트] 윌 오리지날 150mlX5개",
+    "product_address": "https://emart.ssg.com/item/itemView.ssg?itemId=0000008486451&siteNo=6001&salestrNo=2037",
+    "original_price": "8000",
+    "selling_price": "8000",
+    "image_url": "https://sitem.ssgcdn.com/51/64/48/item/0000008486451_i1_290.jpg",
+    "quantity": "10ml 당 107원",
     "out_of_stock": "N"
 }
 ```
