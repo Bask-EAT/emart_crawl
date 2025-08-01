@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>JSON 파일 생성기</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; }
+        .container { max-width: 520px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 32px; }
+        h1 { color: #2d7be5; }
+        .category-list { margin: 24px 0; }
+        .category-item { margin-bottom: 10px; }
+        button { background: #2d7be5; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        .result { margin-top: 24px; color: #2d7be5; font-weight: bold; }
+        input[type="checkbox"] {transform: scale(1.5);}
+        /* toast popup 스타일 */
+        #toast {
+            visibility: hidden;
+            min-width: 220px;
+            background: #2d7be5;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px 24px;
+            position: fixed;
+            z-index: 9999;
+            right: 32px;
+            bottom: 32px;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            opacity: 0;
+            transition: opacity 0.4s, visibility 0.4s;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        input[type="checkbox"] {transform: scale(1.5);}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSON 파일 생성기</h1>
+        <form id="categoryForm">
+            <div style="margin-bottom:16px;">
+                <button type="button" id="selectAllBtn" style="margin-right:8px;">모두 선택</button>
+                <button type="button" id="deselectAllBtn">모두 취소</button>
+            </div>
+            <div class="category-list">
+                <!-- 카테고리 체크박스 -->
+            </div>
+            <button type="submit">선택한 카테고리로 저장</button>
+        </form>
+        <hr style="margin:32px 0;">
+        <div style="margin-bottom:24px;">
+            <button type="button" id="runJsonBtn" style="background:#4caf50;">emart_json.py 실행</button>
+            <button type="button" id="runImageBtn" style="background:#2196f3; margin-left:12px;">emart_image.py 실행</button>
+            <span id="runResultMsg" style="margin-left:16px; color:#2d7be5; font-weight:bold;"></span>
+        </div>
+        <form id="envForm">
+            <h2>페이지 범위 설정</h2>
+            <label>시작 페이지: <input type="number" id="startPageInput" min="1" value="1" style="width:80px;"></label>
+            <label style="margin-left:16px;">끝 페이지: <input type="number" id="endPageInput" min="1" value="30" style="width:80px;"></label>
+            <button type="submit" style="margin-left:16px;">저장</button>
+        </form>
+        <div class="result" id="envResultMsg" style="display:none;"></div>
+        <div class="result" id="resultMsg" style="display:none;"></div>
+        <div id="toast"></div>
+    </div>
+    <script>
+        const categories = {
+            "Fruits": "6000213114",
+            "Vegetables": "6000213167",
+            "Rice_Grains_Nuts": "6000215152",
+            "Meat_Eggs": "6000215194",
+            "Seafood_DriedSeafood": "6000213469",
+            "Milk_Dairy": "6000213534",
+            "MealKits_ConvenienceFood": "6000213247",
+            "Kimchi_SideDishes_Deli": "6000213299",
+            "Water_Beverages_Alcohol": "6000213424",
+            "Coffee_Beans_Tea": "6000215245",
+            "Noodles_CannedGoods": "6000213319",
+            "Seasoning_Oil": "6000215286",
+            "Snacks_Treats": "6000213362",
+            "Bakery_Jam": "6000213412"
+        };
+        const listDiv = document.querySelector('.category-list');
+        Object.entries(categories).forEach(([name, id]) => {
+            const div = document.createElement('div');
+            div.className = 'category-item';
+            div.innerHTML = `<label><input type="checkbox" name="category" value="${name}"> ${name} (${id})</label>`;
+            listDiv.appendChild(div);
+        });
+
+        // 모두 선택/모두 취소 기능
+        document.getElementById('selectAllBtn').onclick = function() {
+            document.querySelectorAll('input[name="category"]').forEach(cb => cb.checked = true);
+        };
+        document.getElementById('deselectAllBtn').onclick = function() {
+            document.querySelectorAll('input[name="category"]').forEach(cb => cb.checked = false);
+        };
+        // toast popup 함수
+        function showToast(message, duration=2500) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'show';
+            setTimeout(() => {
+                toast.className = toast.className.replace('show', '');
+            }, duration);
+        }
+
+        document.getElementById('categoryForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const checked = Array.from(document.querySelectorAll('input[name="category"]:checked'));
+            if (checked.length === 0) {
+                showToast('카테고리를 하나 이상 선택하세요.');
+                return;
+            }
+            const selected = {};
+            checked.forEach(cb => {
+                selected[cb.value] = categories[cb.value];
+            });
+            // 서버에 POST 요청
+            const res = await fetch('/save_categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(selected)
+            });
+            if (res.ok) {
+                showToast('categories.json 파일이 성공적으로 저장되었습니다!');
+            } else {
+                showToast('저장에 실패했습니다.');
+            }
+        };
+
+        // 페이지 범위 저장 기능
+        document.getElementById('envForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const startPage = document.getElementById('startPageInput').value;
+            const endPage = document.getElementById('endPageInput').value;
+            if (parseInt(startPage) < 1 || parseInt(endPage) < 1 || parseInt(endPage) < parseInt(startPage)) {
+                showToast('올바른 페이지 범위를 입력하세요.');
+                return;
+            }
+            const res = await fetch('/save_env', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ EMART_START_PAGE: startPage, EMART_END_PAGE: endPage })
+            });
+            if (res.ok) {
+                showToast('.env 파일이 성공적으로 저장되었습니다!');
+            } else {
+                showToast('저장에 실패했습니다.');
+            }
+        };
+        // emart_json.py 실행 요청
+        document.getElementById('runJsonBtn').onclick = async function() {
+            showToast('emart_json.py 실행 중...');
+            const res = await fetch('/run_json', { method: 'POST' });
+            if (res.ok) {
+                showToast('emart_json.py 실행 완료!');
+            } else {
+                showToast('실행 실패!');
+            }
+        };
+        // emart_image.py 실행 요청
+        document.getElementById('runImageBtn').onclick = async function() {
+            showToast('emart_image.py 실행 중...');
+            const res = await fetch('/run_image', { method: 'POST' });
+            if (res.ok) {
+                showToast('emart_image.py 실행 완료!');
+            } else {
+                showToast('실행 실패!');
+            }
+        };
+    </script>
+</body>
