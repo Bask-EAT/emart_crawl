@@ -1,4 +1,4 @@
-# scrape_all_products.py
+# scrape_all_products
 
 from dotenv import load_dotenv
 import urllib.parse
@@ -169,71 +169,20 @@ def scrape_emart_category_page(html_content, category_name):
 
     return products_data
 
+
 def run_scraper():
-def extract_price_info(products_data):
-    """
-    상품 데이터 리스트에서 id, original_price, selling_price만 추출하여 반환합니다.
-    """
-    result = []
-    for item in products_data:
-        result.append({
-            "id": item.get("id", ""),
-            "original_price": item.get("original_price", ""),
-            "selling_price": item.get("selling_price", "")
-        })
-    return result
-
-
-def extract_non_price_info(products_data):
-    """
-    상품 데이터 리스트에서 original_price, selling_price를 제외한 나머지 정보만 추출하여 반환합니다.
-    """
-    result = []
-    for item in products_data:
-        filtered = {k: v for k, v in item.items() if k not in ["original_price", "selling_price"]}
-        result.append(filtered)
-    return result
-
-
-def save_price_info_json(category_name, products_data, categories):
-    """
-    카테고리명과 상품 데이터 리스트, 전체 카테고리 dict를 받아 가격 정보만 담긴 json을 result_json_price 폴더에 저장합니다.
-    """
-    if not os.path.exists("result_json_price"):
-        os.makedirs("result_json_price")
-    price_only = extract_price_info(products_data)
-    price_file = f"result_json_price/{category_name}_price_only.json"
-    with open(price_file, "w", encoding="utf-8") as f:
-        json.dump(price_only, f, ensure_ascii=False, indent=4)
-    print(f"가격 정보만 저장: {price_file}")
-
-
-def save_non_price_info_json(category_name, products_data, categories):
-    """
-    카테고리명과 상품 데이터 리스트, 전체 카테고리 dict를 받아 가격을 제외한 정보만 담긴 json을 result_json_non_price 폴더에 저장합니다.
-    """
-    if not os.path.exists("result_json_non_price"):
-        os.makedirs("result_json_non_price")
-    non_price = extract_non_price_info(products_data)
-    non_price_file = f"result_json_non_price/{category_name}_non_price.json"
-    with open(non_price_file, "w", encoding="utf-8") as f:
-        json.dump(non_price, f, ensure_ascii=False, indent=4)
-    print(f"가격 이외 정보만 저장: {non_price_file}")
-
-
-def run_emart_json():
     load_dotenv(override=True)
     categories_to_scrape = load_categories_from_file()
-    if not os.path.exists("result_json"):
-        os.makedirs("result_json")
     start_page = int(os.environ.get("EMART_START_PAGE", 1))
     end_page = int(os.environ.get("EMART_END_PAGE", 5))
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
     for category_name, disp_ctg_id in categories_to_scrape.items():
         print(f"\n===== '{category_name}' 카테고리 스크래핑 시작 =====")
         all_scraped_products_for_category = []
+
         try:
             for page_num in range(start_page, end_page + 1):
                 page_url = f"https://emart.ssg.com/disp/category.ssg?dispCtgId={disp_ctg_id}&page={page_num}"
