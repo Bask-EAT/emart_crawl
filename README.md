@@ -12,8 +12,8 @@ uvicorn main1:app --reload --port 8420
 
 5.ㅇㅇ
 
-```
 상품json 추출결과 예시
+```
 {
     "id": "0000008333613",
     "category": "Noodles_CannedGoods",
