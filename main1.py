@@ -8,9 +8,9 @@ from io import StringIO
 
 # 스크래핑 스크립트 파일들을 임포트합니다.
 # scrape_all_products.py의 run_scraper를 run_all_scraper로 임포트
-from emart_json import run_scraper as all_json_scraper
-from emart_price_json import run_scraper as price_json_scraper
-from emart_non_price_json import run_scraper as non_price_json_scraper
+from scrape_all_products import run_scraper as run_all_scraper
+from scrape_id_and_price import run_scraper as run_id_price_scraper
+from scrape_other_info import run_scraper as run_other_info_scraper
 
 # run_image 엔드포인트를 위해 emart_image.py의 run_emart_image를 임포트
 from emart_image import run_emart_image
@@ -59,31 +59,31 @@ async def save_env(request: Request):
     return {"status": "success"}
 
 
-@app.post("/run_json")
-async def run_json():
+@app.post("/run_all_products")
+async def run_all_products():
     """모든 상품 정보를 스크랩하여 JSON으로 저장합니다."""
     try:
-        all_json_scraper()
+        run_all_scraper()
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-@app.post("/run_price_json")
-async def run_price_json():
+@app.post("/run_id_price")
+async def run_id_price():
     """ID와 가격 정보만 스크랩하여 JSON으로 저장합니다."""
     try:
-        price_json_scraper()
+        run_id_price_scraper()
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-@app.post("/run_non_price_json")
-async def run_non_price_json():
+@app.post("/run_other_info")
+async def run_other_info():
     """ID와 가격 외의 정보만 스크랩하여 JSON으로 저장합니다."""
     try:
-        non_price_json_scraper()
+        run_other_info_scraper()
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}

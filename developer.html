@@ -106,6 +106,12 @@
             <button type="button" id="runIdPriceBtn" style="background:#c3ade7;">ID & 가격 스크래핑</button>
             <button type="button" id="runOtherInfoBtn" style="background:#bd4b5e;">ID 외 정보 스크래핑</button>
             <button type="button" id="runImageBtn" style="background:#2196f3;">이미지 스크래핑</button>
+        <div style="margin: 24px 0; text-align:center;">
+            <button type="button" id="runJsonBtn" style="background:#4caf50; margin: 8px 8px; padding: 12px 28px;">emart_json.py 실행</button>
+            <button type="button" id="runImageBtn" style="background:#2196f3; margin: 8px 8px; padding: 12px 28px;">emart_image.py 실행</button>
+            <button type="button" id="bulkPriceBtn" style="background:#ff9800; margin: 8px 8px; padding: 12px 28px;">가격json 일괄 추출</button>
+            <button type="button" id="bulkNonPriceBtn" style="background:#9c27b0; margin: 8px 8px; padding: 12px 28px;">가격외json 일괄 추출</button>
+            <span id="runResultMsg" style="margin-left:16px; color:#2d7be5; font-weight:bold;"></span>
         </div>
         <form id="envForm">
             <h2>페이지 범위 설정</h2>
@@ -208,7 +214,7 @@
         // 새로운 스크래핑 버튼 실행 요청
         document.getElementById('runAllProductsBtn').onclick = async function () {
             showToast('모든 상품 정보 스크래핑 실행 중...');
-            const res = await fetch('/run_json', { method: 'POST' });
+            const res = await fetch('/run_all_products', { method: 'POST' });
             if (res.ok) {
                 showToast('모든 상품 정보 스크래핑 완료!');
             } else {
@@ -218,7 +224,7 @@
 
         document.getElementById('runIdPriceBtn').onclick = async function () {
             showToast('ID 및 가격 정보 스크래핑 실행 중...');
-            const res = await fetch('/run_price_json', { method: 'POST' });
+            const res = await fetch('/run_id_price', { method: 'POST' });
             if (res.ok) {
                 showToast('ID 및 가격 정보 스크래핑 완료!');
             } else {
@@ -228,7 +234,7 @@
 
         document.getElementById('runOtherInfoBtn').onclick = async function () {
             showToast('ID 외 정보 스크래핑 실행 중...');
-            const res = await fetch('/run_non_price_json', { method: 'POST' });
+            const res = await fetch('/run_other_info', { method: 'POST' });
             if (res.ok) {
                 showToast('실행 완료!');
             } else {
