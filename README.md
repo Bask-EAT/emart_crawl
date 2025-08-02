@@ -15,14 +15,32 @@ uvicorn main1:app --reload --port 8420
 ```
 상품json 추출결과 예시
 {
-    "id": "0000008486451",
-    "category": "Milk_Dairy",
-    "product_name": "[한국야쿠르트] 윌 오리지날 150mlX5개",
-    "product_address": "https://emart.ssg.com/item/itemView.ssg?itemId=0000008486451&siteNo=6001&salestrNo=2037",
-    "original_price": "8000",
-    "selling_price": "8000",
-    "image_url": "https://sitem.ssgcdn.com/51/64/48/item/0000008486451_i1_290.jpg",
-    "quantity": "10ml 당 107원",
+    "id": "0000008333613",
+    "category": "Noodles_CannedGoods",
+    "product_name": "[농심] 올리브 짜파게티 (140gx5입)",
+    "product_address": "https://emart.ssg.com/item/itemView.ssg?itemId=0000008333613&siteNo=6001&salestrNo=2037",
+    "original_price": "5300",
+    "selling_price": "4980",
+    "image_url": "https://sitem.ssgcdn.com/13/36/33/item/0000008333613_i1_290.jpg",
+    "quantity": "100g 당 711원",
     "out_of_stock": "N"
+}
+```
+```
+{
+    "id": "0000008333613",
+    "category": "Noodles_CannedGoods",
+    "product_name": "[농심] 올리브 짜파게티 (140gx5입)",
+    "product_address": "https://emart.ssg.com/item/itemView.ssg?itemId=0000008333613&siteNo=6001&salestrNo=2037",
+    "image_url": "https://sitem.ssgcdn.com/13/36/33/item/0000008333613_i1_290.jpg",
+    "quantity": "100g 당 711원",
+    "out_of_stock": "N"
+}
+```
+```
+{
+    "id": "0000008333613",
+    "original_price": "5300",
+    "selling_price": "4980"
 }
 ```
