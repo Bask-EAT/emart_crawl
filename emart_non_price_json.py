@@ -1,4 +1,4 @@
-# scrape_all_products.py
+# scrape_other_info.py
 
 from dotenv import load_dotenv
 import urllib.parse
@@ -195,15 +195,31 @@ def run_scraper():
                 scraped_products_on_page = scrape_emart_category_page(
                     html_content, category_name
                 )
-                all_scraped_products_for_category.extend(scraped_products_on_page)
+
+                # ID와 가격 정보를 제외한 나머지 정보만 추출
+                other_info_data = []
+                for product in scraped_products_on_page:
+                    other_info_data.append(
+                        {
+                            "id": product.get("id"),
+                            "category": product.get("category"),
+                            "product_name": product.get("product_name"),
+                            "product_address": product.get("product_address"),
+                            "image_url": product.get("image_url"),
+                            "quantity": product.get("quantity"),
+                            "out_of_stock": product.get("out_of_stock"),
+                        }
+                    )
+                all_scraped_products_for_category.extend(other_info_data)
+
                 print(
-                    f"--- {category_name} - {page_num} 페이지 스크래핑 완료. {len(scraped_products_on_page)}개의 상품 추출. ---"
+                    f"--- {category_name} - {page_num} 페이지 스크래핑 완료. {len(other_info_data)}개의 상품 추출. ---"
                 )
                 time.sleep(2)
 
-            output_file = f"result_json/{category_name}_all_products.json"
-            if not os.path.exists("result_json"):
-                os.makedirs("result_json")
+            output_file = f"result_non_price_json/{category_name}_other_info.json"
+            if not os.path.exists("result_non_price_json"):
+                os.makedirs("result_non_price_json")
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(
                     all_scraped_products_for_category, f, ensure_ascii=False, indent=4

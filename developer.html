@@ -1,18 +1,61 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <title>JSON 파일 생성기</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; }
-        .container { max-width: 520px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 32px; }
-        h1 { color: #2d7be5; }
-        .category-list { margin: 24px 0; }
-        .category-item { margin-bottom: 10px; }
-        button { background: #2d7be5; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        .result { margin-top: 24px; color: #2d7be5; font-weight: bold; }
-        input[type="checkbox"] {transform: scale(1.5);}
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f7f7;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 32px;
+        }
+
+        h1 {
+            color: #2d7be5;
+        }
+
+        .category-list {
+            margin: 24px 0;
+        }
+
+        .category-item {
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #2d7be5;
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background: #ccc;
+        }
+
+        .result {
+            margin-top: 24px;
+            color: #2d7be5;
+            font-weight: bold;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.5);
+        }
+
         /* toast popup 스타일 */
         #toast {
             visibility: hidden;
@@ -27,17 +70,22 @@
             right: 32px;
             bottom: 32px;
             font-size: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
             opacity: 0;
             transition: opacity 0.4s, visibility 0.4s;
         }
+
         #toast.show {
             visibility: visible;
             opacity: 1;
         }
-        input[type="checkbox"] {transform: scale(1.5);}
+
+        input[type="checkbox"] {
+            transform: scale(1.5);
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>JSON 파일 생성기</h1>
@@ -52,15 +100,18 @@
             <button type="submit">선택한 카테고리로 저장</button>
         </form>
         <hr style="margin:32px 0;">
-        <div style="margin-bottom:24px;">
-            <button type="button" id="runJsonBtn" style="background:#4caf50;">emart_json.py 실행</button>
-            <button type="button" id="runImageBtn" style="background:#2196f3; margin-left:12px;">emart_image.py 실행</button>
-            <span id="runResultMsg" style="margin-left:16px; color:#2d7be5; font-weight:bold;"></span>
+        <div style="margin-bottom:24px; display: flex; gap: 12px;">
+            <!-- 수정된 버튼 목록 -->
+            <button type="button" id="runAllProductsBtn" style="background:#4caf50;">모든 정보 스크래핑</button>
+            <button type="button" id="runIdPriceBtn" style="background:#c3ade7;">ID & 가격 스크래핑</button>
+            <button type="button" id="runOtherInfoBtn" style="background:#bd4b5e;">ID 외 정보 스크래핑</button>
+            <button type="button" id="runImageBtn" style="background:#2196f3;">이미지 스크래핑</button>
         </div>
         <form id="envForm">
             <h2>페이지 범위 설정</h2>
             <label>시작 페이지: <input type="number" id="startPageInput" min="1" value="1" style="width:80px;"></label>
-            <label style="margin-left:16px;">끝 페이지: <input type="number" id="endPageInput" min="1" value="30" style="width:80px;"></label>
+            <label style="margin-left:16px;">끝 페이지: <input type="number" id="endPageInput" min="1" value="30"
+                    style="width:80px;"></label>
             <button type="submit" style="margin-left:16px;">저장</button>
         </form>
         <div class="result" id="envResultMsg" style="display:none;"></div>
@@ -93,14 +144,14 @@
         });
 
         // 모두 선택/모두 취소 기능
-        document.getElementById('selectAllBtn').onclick = function() {
+        document.getElementById('selectAllBtn').onclick = function () {
             document.querySelectorAll('input[name="category"]').forEach(cb => cb.checked = true);
         };
-        document.getElementById('deselectAllBtn').onclick = function() {
+        document.getElementById('deselectAllBtn').onclick = function () {
             document.querySelectorAll('input[name="category"]').forEach(cb => cb.checked = false);
         };
         // toast popup 함수
-        function showToast(message, duration=2500) {
+        function showToast(message, duration = 2500) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = 'show';
@@ -109,7 +160,7 @@
             }, duration);
         }
 
-        document.getElementById('categoryForm').onsubmit = async function(e) {
+        document.getElementById('categoryForm').onsubmit = async function (e) {
             e.preventDefault();
             const checked = Array.from(document.querySelectorAll('input[name="category"]:checked'));
             if (checked.length === 0) {
@@ -134,7 +185,7 @@
         };
 
         // 페이지 범위 저장 기능
-        document.getElementById('envForm').onsubmit = async function(e) {
+        document.getElementById('envForm').onsubmit = async function (e) {
             e.preventDefault();
             const startPage = document.getElementById('startPageInput').value;
             const endPage = document.getElementById('endPageInput').value;
@@ -153,18 +204,40 @@
                 showToast('저장에 실패했습니다.');
             }
         };
-        // emart_json.py 실행 요청
-        document.getElementById('runJsonBtn').onclick = async function() {
-            showToast('emart_json.py 실행 중...');
+
+        // 새로운 스크래핑 버튼 실행 요청
+        document.getElementById('runAllProductsBtn').onclick = async function () {
+            showToast('모든 상품 정보 스크래핑 실행 중...');
             const res = await fetch('/run_json', { method: 'POST' });
             if (res.ok) {
-                showToast('emart_json.py 실행 완료!');
+                showToast('모든 상품 정보 스크래핑 완료!');
             } else {
                 showToast('실행 실패!');
             }
         };
+
+        document.getElementById('runIdPriceBtn').onclick = async function () {
+            showToast('ID 및 가격 정보 스크래핑 실행 중...');
+            const res = await fetch('/run_price_json', { method: 'POST' });
+            if (res.ok) {
+                showToast('ID 및 가격 정보 스크래핑 완료!');
+            } else {
+                showToast('실행 실패!');
+            }
+        };
+
+        document.getElementById('runOtherInfoBtn').onclick = async function () {
+            showToast('ID 외 정보 스크래핑 실행 중...');
+            const res = await fetch('/run_non_price_json', { method: 'POST' });
+            if (res.ok) {
+                showToast('실행 완료!');
+            } else {
+                showToast('실행 실패!');
+            }
+        };
+
         // emart_image.py 실행 요청
-        document.getElementById('runImageBtn').onclick = async function() {
+        document.getElementById('runImageBtn').onclick = async function () {
             showToast('emart_image.py 실행 중...');
             const res = await fetch('/run_image', { method: 'POST' });
             if (res.ok) {

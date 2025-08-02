@@ -1,4 +1,4 @@
-# scrape_all_products.py
+# scrape_id_and_price.py
 
 from dotenv import load_dotenv
 import urllib.parse
@@ -195,15 +195,27 @@ def run_scraper():
                 scraped_products_on_page = scrape_emart_category_page(
                     html_content, category_name
                 )
-                all_scraped_products_for_category.extend(scraped_products_on_page)
+
+                # ID와 가격 정보만 추출
+                price_data = []
+                for product in scraped_products_on_page:
+                    price_data.append(
+                        {
+                            "id": product.get("id"),
+                            "original_price": product.get("original_price"),
+                            "selling_price": product.get("selling_price"),
+                        }
+                    )
+                all_scraped_products_for_category.extend(price_data)
+
                 print(
-                    f"--- {category_name} - {page_num} 페이지 스크래핑 완료. {len(scraped_products_on_page)}개의 상품 추출. ---"
+                    f"--- {category_name} - {page_num} 페이지 스크래핑 완료. {len(price_data)}개의 상품 추출. ---"
                 )
                 time.sleep(2)
 
-            output_file = f"result_json/{category_name}_all_products.json"
-            if not os.path.exists("result_json"):
-                os.makedirs("result_json")
+            output_file = f"result_price_json/{category_name}_id_and_price.json"
+            if not os.path.exists("result_price_json"):
+                os.makedirs("result_price_json")
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(
                     all_scraped_products_for_category, f, ensure_ascii=False, indent=4
