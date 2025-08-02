@@ -9,6 +9,8 @@ __pycache__/
 
 # 결과 및 데이터
 result_json/
+result_json_non_price
+result_json_price
 result_image/
 categories.json
 

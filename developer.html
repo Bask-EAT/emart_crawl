@@ -52,15 +52,17 @@
             <button type="submit">선택한 카테고리로 저장</button>
         </form>
         <hr style="margin:32px 0;">
-        <div style="margin-bottom:24px;">
-            <button type="button" id="runJsonBtn" style="background:#4caf50;">emart_json.py 실행</button>
-            <button type="button" id="runImageBtn" style="background:#2196f3; margin-left:12px;">emart_image.py 실행</button>
+        <div style="margin: 24px 0; text-align:center;">
+            <button type="button" id="runJsonBtn" style="background:#4caf50; margin: 8px 8px; padding: 12px 28px;">emart_json.py 실행</button>
+            <button type="button" id="runImageBtn" style="background:#2196f3; margin: 8px 8px; padding: 12px 28px;">emart_image.py 실행</button>
+            <button type="button" id="bulkPriceBtn" style="background:#ff9800; margin: 8px 8px; padding: 12px 28px;">가격json 일괄 추출</button>
+            <button type="button" id="bulkNonPriceBtn" style="background:#9c27b0; margin: 8px 8px; padding: 12px 28px;">가격외json 일괄 추출</button>
             <span id="runResultMsg" style="margin-left:16px; color:#2d7be5; font-weight:bold;"></span>
         </div>
         <form id="envForm">
             <h2>페이지 범위 설정</h2>
             <label>시작 페이지: <input type="number" id="startPageInput" min="1" value="1" style="width:80px;"></label>
-            <label style="margin-left:16px;">끝 페이지: <input type="number" id="endPageInput" min="1" value="30" style="width:80px;"></label>
+            <label style="margin-left:16px;">끝 페이지: <input type="number" id="endPageInput" min="1" value="5" style="width:80px;"></label>
             <button type="submit" style="margin-left:16px;">저장</button>
         </form>
         <div class="result" id="envResultMsg" style="display:none;"></div>
@@ -173,5 +175,26 @@
                 showToast('실행 실패!');
             }
         };
+        // 가격json 일괄 추출 버튼
+        document.getElementById('bulkPriceBtn').onclick = async function() {
+            showToast('가격json 일괄 추출 중...');
+            const res = await fetch('/extract_price_json_bulk', { method: 'POST' });
+            if (res.ok) {
+                showToast('가격json 일괄 추출 완료!');
+            } else {
+                showToast('가격json 일괄 추출 실패!');
+            }
+        };
+        // 가격외json 일괄 추출 버튼
+        document.getElementById('bulkNonPriceBtn').onclick = async function() {
+            showToast('가격외json 일괄 추출 중...');
+            const res = await fetch('/extract_non_price_json_bulk', { method: 'POST' });
+            if (res.ok) {
+                showToast('가격외json 일괄 추출 완료!');
+            } else {
+                showToast('가격외json 일괄 추출 실패!');
+            }
+        };
+        // 가격json, 가격외json 추출 버튼 이벤트 (카테고리별 버튼 제거)
     </script>
 </body>
