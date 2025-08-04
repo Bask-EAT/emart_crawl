@@ -24,6 +24,12 @@
             color: #2d7be5;
         }
 
+        h2 {
+            font-size: 1.2em;
+            color: #555;
+            margin-top: 32px;
+        }
+
         .category-list {
             margin: 24px 0;
         }
@@ -40,10 +46,23 @@
             border-radius: 6px;
             font-size: 16px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background: #1e5a9c;
         }
 
         button:disabled {
             background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
         }
 
         .result {
@@ -79,10 +98,6 @@
             visibility: visible;
             opacity: 1;
         }
-
-        input[type="checkbox"] {
-            transform: scale(1.5);
-        }
     </style>
 </head>
 
@@ -100,13 +115,24 @@
             <button type="submit">선택한 카테고리로 저장</button>
         </form>
         <hr style="margin:32px 0;">
-        <div style="margin-bottom:24px; display: flex; gap: 12px;">
-            <!-- 수정된 버튼 목록 -->
+
+        <h2>스크래핑 실행</h2>
+        <div class="button-group">
             <button type="button" id="runAllProductsBtn" style="background:#4caf50;">모든 정보 스크래핑</button>
             <button type="button" id="runIdPriceBtn" style="background:#c3ade7;">ID & 가격 스크래핑</button>
             <button type="button" id="runOtherInfoBtn" style="background:#bd4b5e;">ID 외 정보 스크래핑</button>
             <button type="button" id="runImageBtn" style="background:#2196f3;">이미지 스크래핑</button>
         </div>
+
+        <hr style="margin:32px 0;">
+        
+        <h2>Firestore 업로드</h2>
+        <div class="button-group">
+            <button type="button" id="runFirebaseAllBtn" style="background:#ff9800;">모든 정보 Firestore 업로드</button>
+            <button type="button" id="runFirebasePriceBtn" style="background:#8bc34a;">ID & 가격 Firestore 업로드</button>
+            <button type="button" id="runFirebaseOtherBtn" style="background:#9c27b0;">ID 외 정보 Firestore 업로드</button>
+        </div>
+        
         <form id="envForm">
             <h2>페이지 범위 설정</h2>
             <label>시작 페이지: <input type="number" id="startPageInput" min="1" value="1" style="width:80px;"></label>
@@ -246,5 +272,37 @@
                 showToast('실행 실패!');
             }
         };
+
+        // Firebase 업로드 버튼 실행 요청 (새로 추가된 부분)
+        document.getElementById('runFirebaseAllBtn').onclick = async function () {
+            showToast('모든 상품 정보 Firestore에 업로드 중...');
+            const res = await fetch('/run_firebase_all', { method: 'POST' });
+            if (res.ok) {
+                showToast('모든 상품 정보 Firestore 업로드 완료!');
+            } else {
+                showToast('업로드 실패!');
+            }
+        };
+
+        document.getElementById('runFirebasePriceBtn').onclick = async function () {
+            showToast('ID 및 가격 정보 Firestore에 업로드 중...');
+            const res = await fetch('/run_firebase_price', { method: 'POST' });
+            if (res.ok) {
+                showToast('ID 및 가격 정보 Firestore 업로드 완료!');
+            } else {
+                showToast('업로드 실패!');
+            }
+        };
+
+        document.getElementById('runFirebaseOtherBtn').onclick = async function () {
+            showToast('ID 외 정보 Firestore에 업로드 중...');
+            const res = await fetch('/run_firebase_other', { method: 'POST' });
+            if (res.ok) {
+                showToast('ID 외 정보 Firestore 업로드 완료!');
+            } else {
+                showToast('업로드 실패!');
+            }
+        };
     </script>
 </body>
+</html>

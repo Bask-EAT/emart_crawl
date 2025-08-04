@@ -79,6 +79,12 @@ def upload_json_to_firestore(directory_path):
             # 남은 문서 커밋
             batch.commit()
             print(f"'{json_file}' 파일 업로드 완료. 총 {doc_count}개의 문서가 업로드되었습니다.")
+
+            try:
+                os.remove(json_file)
+                print(f"'{json_file}' 파일이 성공적으로 삭제되었습니다.")
+            except OSError as e:
+                print(f"파일 삭제 중 오류 발생: {json_file} - {e.strerror}")
             
         return {"status": "success", "message": "All files uploaded successfully."}
 

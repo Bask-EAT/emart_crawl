@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse, FileResponse
 import json
 import sys
 from io import StringIO
+from firebase_uploader import (upload_all_products_to_firebase,upload_id_price_to_firebase,upload_other_info_to_firebase)
 
 # 스크래핑 스크립트 파일들을 임포트합니다.
 # scrape_all_products.py의 run_scraper를 run_all_scraper로 임포트
@@ -94,6 +95,34 @@ async def run_image():
     """emart_image.py의 run_emart_image 함수를 실행합니다."""
     try:
         run_emart_image()
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/run_firebase_all")
+async def run_firebase_all():
+    """모든 상품 정보를 Firestore에 업로드합니다."""
+    try:
+        upload_all_products_to_firebase()
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@app.post("/run_firebase_price")
+async def run_firebase_price():
+    """ID와 가격 정보를 Firestore에 업로드합니다."""
+    try:
+        upload_id_price_to_firebase()
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@app.post("/run_firebase_other")
+async def run_firebase_other():
+    """ID 외 정보를 Firestore에 업로드합니다."""
+    try:
+        upload_other_info_to_firebase()
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
