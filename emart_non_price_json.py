@@ -65,6 +65,7 @@ def scrape_emart_category_page(html_content, category_name):
         image_url = ""
         quantity = ""
         out_of_stock = "N"
+        last_updated = datetime.now().isoformat()
 
         brand_span = item.select_one("div.mnemitem_tit > span.mnemitem_goods_brand")
         title_span = item.select_one("div.mnemitem_tit > span.mnemitem_goods_tit")
@@ -164,6 +165,7 @@ def scrape_emart_category_page(html_content, category_name):
                 "image_url": image_url,
                 "quantity": quantity,
                 "out_of_stock": out_of_stock,
+                "last_updated": last_updated,
             }
         )
 
@@ -192,9 +194,7 @@ def run_scraper():
                 response = requests.get(page_url, headers=headers)
                 response.raise_for_status()
                 html_content = response.text
-                scraped_products_on_page = scrape_emart_category_page(
-                    html_content, category_name
-                )
+                scraped_products_on_page = scrape_emart_category_page(html_content, category_name)
 
                 # ID와 가격 정보를 제외한 나머지 정보만 추출
                 other_info_data = []
@@ -208,6 +208,7 @@ def run_scraper():
                             "image_url": product.get("image_url"),
                             "quantity": product.get("quantity"),
                             "out_of_stock": product.get("out_of_stock"),
+                            "last_updated": product.get("last_updated"),
                         }
                     )
                 all_scraped_products_for_category.extend(other_info_data)

@@ -65,6 +65,7 @@ def scrape_emart_category_page(html_content, category_name):
         image_url = ""
         quantity = ""
         out_of_stock = "N"
+        last_updated = datetime.now().isoformat()
 
         brand_span = item.select_one("div.mnemitem_tit > span.mnemitem_goods_brand")
         title_span = item.select_one("div.mnemitem_tit > span.mnemitem_goods_tit")
@@ -164,6 +165,7 @@ def scrape_emart_category_page(html_content, category_name):
                 "image_url": image_url,
                 "quantity": quantity,
                 "out_of_stock": out_of_stock,
+                "last_updated": last_updated,
             }
         )
 

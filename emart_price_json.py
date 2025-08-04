@@ -58,49 +58,36 @@ def scrape_emart_category_page(html_content, category_name):
 
     for item in product_items:
         id = ""
-        product_name = ""
         product_address = ""
         original_price = ""
         selling_price = ""
-        image_url = ""
-        quantity = ""
-        out_of_stock = "N"
+        last_updated = datetime.now().isoformat()
 
-        brand_span = item.select_one("div.mnemitem_tit > span.mnemitem_goods_brand")
-        title_span = item.select_one("div.mnemitem_tit > span.mnemitem_goods_tit")
-        product_name_parts = []
-        if brand_span:
-            product_name_parts.append(f"[{brand_span.get_text(strip=True)}]")
-        if title_span:
-            product_name_parts.append(title_span.get_text(strip=True))
-        product_name = " ".join(product_name_parts).strip()
-
+        # 첫 번째 선택자 (div > a)에서 href 속성 찾기
         link_tag = item.select_one("div > a")
+        raw_url = None
         if link_tag and "href" in link_tag.attrs:
             raw_url = link_tag["href"]
-            if raw_url.startswith("//"):
-                product_address = "https:" + raw_url
-            elif raw_url.startswith("http"):
-                product_address = raw_url
-            else:
-                product_address = "https://emart.ssg.com" + raw_url
-        else:
+        
+        # 첫 번째 선택자에서 찾지 못했을 경우, 두 번째 선택자 (div.mnemitem_thmb_v2 > a)에서 href 속성 찾기
+        if not raw_url:
             link_tag_alt = item.select_one("div.mnemitem_thmb_v2 > a")
             if link_tag_alt and "href" in link_tag_alt.attrs:
-                raw_url_alt = link_tag_alt["href"]
-                if raw_url_alt.startswith("//"):
-                    product_address = "https:" + raw_url_alt
-                elif raw_url_alt.startswith("http"):
-                    product_address = raw_url_alt
-                else:
-                    product_address = "https://emart.ssg.com" + raw_url_alt
+                raw_url = link_tag_alt["href"]
 
-        if product_address:
-            parsed_url = urllib.parse.urlparse(product_address)
-            parsed_query = urllib.parse.parse_qs(parsed_url.query)
-            item_id_list = parsed_query.get("itemId")
-            if item_id_list:
-                id = item_id_list[0]
+        # href 속성을 찾았을 경우에만 ID 추출 로직 실행
+        if raw_url:
+            # URL의 쿼리 부분을 파싱하여 딕셔너리로 만듭니다.
+            # urllib.parse.urlparse는 URL을 scheme, netloc, path, params, query, fragment로 나눕니다.
+            parsed_url = urllib.parse.urlparse(raw_url)
+            # urllib.parse.parse_qs는 쿼리 문자열을 파싱하여 딕셔너리를 반환합니다.
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            
+            # 'itemId' 키가 딕셔너리에 있고, 값이 있을 경우 첫 번째 값을 반환합니다.
+            if "itemId" in query_params and query_params["itemId"]:
+                id = query_params["itemId"][0]
+            else:
+                print(f"경고: '{raw_url}'에서 itemId를 찾을 수 없습니다.")
 
         selling_price_tag = item.select_one(
             "div.mnemitem_pricewrap_v2 > div.mnemitem_price_row > div.new_price > em"
@@ -130,40 +117,12 @@ def scrape_emart_category_page(html_content, category_name):
                 .replace(",", "")
             )
 
-        img_tag = item.select_one("div.mnemitem_thmb_v2 > a > div > img")
-        if img_tag:
-            raw_image_url = ""
-            if "data-src" in img_tag.attrs:
-                raw_image_url = img_tag["data-src"]
-            elif "src" in img_tag.attrs:
-                raw_image_url = img_tag["src"]
-            if raw_image_url:
-                if raw_image_url.startswith("//"):
-                    image_url = "https:" + raw_image_url
-                elif raw_image_url.startswith("http"):
-                    image_url = raw_image_url
-                else:
-                    image_url = "https://emart.ssg.com" + raw_image_url
-
-        quantity_tag = item.select_one("div.mnemitem_pricewrap_v2 > div.unit_price")
-        if quantity_tag:
-            quantity = quantity_tag.get_text(strip=True)
-
-        sold_out_tag = item.select_one("div.mnemitem_thmb_v2 > div.mnemitem_soldout")
-        if sold_out_tag:
-            out_of_stock = "Y"
-
         products_data.append(
             {
                 "id": id,
-                "category": category_name,
-                "product_name": product_name,
-                "product_address": product_address,
                 "original_price": original_price,
                 "selling_price": selling_price,
-                "image_url": image_url,
-                "quantity": quantity,
-                "out_of_stock": out_of_stock,
+                "last_updated": last_updated,
             }
         )
 
@@ -204,6 +163,7 @@ def run_scraper():
                             "id": product.get("id"),
                             "original_price": product.get("original_price"),
                             "selling_price": product.get("selling_price"),
+                            "last_updated": product.get("last_updated"),
                         }
                     )
                 all_scraped_products_for_category.extend(price_data)
