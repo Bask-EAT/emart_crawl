@@ -58,7 +58,6 @@ def scrape_emart_category_page(html_content, category_name):
 
     for item in product_items:
         id = ""
-        product_address = ""
         original_price = ""
         selling_price = ""
         last_updated = datetime.now().isoformat()
