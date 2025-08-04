@@ -201,7 +201,7 @@ def run_scraper():
                 )
                 time.sleep(2)
 
-            output_file = f"result_json/{category_name}_all_products.json"
+            output_file = f"result_json/{category_name}.json"
             if not os.path.exists("result_json"):
                 os.makedirs("result_json")
             with open(output_file, "w", encoding="utf-8") as f:

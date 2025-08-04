@@ -6,6 +6,7 @@ __pycache__/
 
 # 환경설정
 .env
+repository/serviceAccountKey.json
 
 # 결과 및 데이터
 result_json/
