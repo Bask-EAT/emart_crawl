@@ -65,7 +65,7 @@ def upload_json_to_firestore(directory_path):
                 # 'id' 필드를 사용하여 문서 ID를 지정
                 product_id = product.get("id")
                 if product_id:
-                    doc_ref = db.collection(file_name).document(product_id)
+                    doc_ref = db.collection("rag_products").document(product_id)
                     # merge=True를 사용하여 기존 문서가 있으면 필드를 업데이트합니다.
                     batch.set(doc_ref, product, merge=True)
                     doc_count += 1
