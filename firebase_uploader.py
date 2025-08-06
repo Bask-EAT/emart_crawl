@@ -63,21 +63,29 @@ def upload_json_to_firestore(directory_path):
             for product in products:
                 product_id = product.get("id")
                 if product_id:
-                    # 가격 관련 필드만 추출
-                    price_data = {k: v for k, v in product.items() if k in ["id", "original_price", "selling_price", "last_updated"]}
-                    # 상품 관련 필드만 추출
-                    product_data = {k: v for k, v in product.items() if k in ["id", "category", "product_name", "last_updated", "image_url", "product_address", "quantity", "out_of_stock"]}
-
-                    # emart_price 컬렉션에 가격 정보 저장
+                    price_info = {
+                        "last_updated": product.get("last_updated"),
+                        "original_price": product.get("original_price"),
+                        "selling_price": product.get("selling_price")
+                    }
                     price_ref = db.collection("emart_price").document(product_id)
-                    price_batch.set(price_ref, price_data, merge=True)
+                    try:
+                        # 문서가 이미 있으면 price_history에 append
+                        price_ref.update({
+                            "price_history": firestore.ArrayUnion([price_info])
+                        })
+                    except Exception:
+                        # 문서가 없으면 새로 생성
+                        price_ref.set({
+                            "id": product_id,
+                            "price_history": [price_info]
+                        }, merge=True)
                     price_doc_count += 1
                     if price_doc_count % 450 == 0:
-                        price_batch.commit()
-                        price_batch = db.batch()
                         print(f"  --> emart_price {price_doc_count}개 문서 커밋 완료...")
 
                     # emart_product 컬렉션에 상품 정보 저장
+                    product_data = {k: v for k, v in product.items() if k in ["id", "category", "image_url", "last_updated", "out_of_stock", "product_address", "product_name", "quantity"]}
                     product_ref = db.collection("emart_product").document(product_id)
                     product_batch.set(product_ref, product_data, merge=True)
                     product_doc_count += 1
