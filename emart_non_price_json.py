@@ -60,8 +60,6 @@ def scrape_emart_category_page(html_content, category_name):
         id = ""
         product_name = ""
         product_address = ""
-        original_price = ""
-        selling_price = ""
         image_url = ""
         quantity = ""
         out_of_stock = "N"
@@ -103,33 +101,6 @@ def scrape_emart_category_page(html_content, category_name):
             if item_id_list:
                 id = item_id_list[0]
 
-        selling_price_tag = item.select_one(
-            "div.mnemitem_pricewrap_v2 > div.mnemitem_price_row > div.new_price > em"
-        )
-        if not selling_price_tag:
-            selling_price_tag = item.select_one(
-                "div.mnemitem_pricewrap_v2 > div:nth-child(2) > div > em"
-            )
-        if selling_price_tag:
-            selling_price = (
-                selling_price_tag.get_text(strip=True)
-                .replace("원", "")
-                .replace(",", "")
-            )
-
-        original_price_tag = item.select_one(
-            "div.mnemitem_pricewrap_v2 > div.mnemitem_price_row.ty_oldpr > div > del > em"
-        )
-        if not original_price_tag:
-            original_price_tag = item.select_one(
-                "div.mnemitem_pricewrap_v2 > div:nth-child(1) > div > em"
-            )
-        if original_price_tag:
-            original_price = (
-                original_price_tag.get_text(strip=True)
-                .replace("원", "")
-                .replace(",", "")
-            )
 
         img_tag = item.select_one("div.mnemitem_thmb_v2 > a > div > img")
         if img_tag:
@@ -160,12 +131,11 @@ def scrape_emart_category_page(html_content, category_name):
                 "category": category_name,
                 "product_name": product_name,
                 "product_address": product_address,
-                "original_price": original_price,
-                "selling_price": selling_price,
                 "image_url": image_url,
                 "quantity": quantity,
                 "out_of_stock": out_of_stock,
                 "last_updated": last_updated,
+                "is_emb": "R"
             }
         )
 
