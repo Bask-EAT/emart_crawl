@@ -54,31 +54,42 @@ def upload_json_to_firestore(directory_path):
             with open(json_file, "r", encoding="utf-8") as f:
                 products = json.load(f)
 
-            # JSON 파일명에서 카테고리 이름을 추출하여 컬렉션 이름을 동적으로 생성
-            file_name = os.path.basename(json_file).split(".")[0]
+            print(f"\n파일 '{json_file}'의 데이터를 Firestore에 업로드합니다.")
 
-            print(f"\n파일 '{json_file}'의 데이터를 Firestore 컬렉션 '{file_name}'에 업로드합니다.")
-
-            batch = db.batch()
-            doc_count = 0
+            price_batch = db.batch()
+            product_batch = db.batch()
+            price_doc_count = 0
+            product_doc_count = 0
             for product in products:
-                # 'id' 필드를 사용하여 문서 ID를 지정
                 product_id = product.get("id")
                 if product_id:
-                    doc_ref = db.collection(file_name).document(product_id)
-                    # merge=True를 사용하여 기존 문서가 있으면 필드를 업데이트합니다.
-                    batch.set(doc_ref, product, merge=True)
-                    doc_count += 1
-                
-                    # Firestore 쓰기 배치 제한(500)을 고려하여 450개마다 커밋
-                    if doc_count % 450 == 0:
-                        batch.commit()
-                        batch = db.batch()
-                        print(f"  --> {doc_count}개 문서 커밋 완료...")
+                    # 가격 관련 필드만 추출
+                    price_data = {k: v for k, v in product.items() if k in ["id", "original_price", "selling_price", "last_updated"]}
+                    # 상품 관련 필드만 추출
+                    product_data = {k: v for k, v in product.items() if k in ["id", "category", "product_name", "last_updated", "image_url", "product_address", "quantity", "out_of_stock"]}
+
+                    # emart_price 컬렉션에 가격 정보 저장
+                    price_ref = db.collection("emart_price").document(product_id)
+                    price_batch.set(price_ref, price_data, merge=True)
+                    price_doc_count += 1
+                    if price_doc_count % 450 == 0:
+                        price_batch.commit()
+                        price_batch = db.batch()
+                        print(f"  --> emart_price {price_doc_count}개 문서 커밋 완료...")
+
+                    # emart_product 컬렉션에 상품 정보 저장
+                    product_ref = db.collection("emart_product").document(product_id)
+                    product_batch.set(product_ref, product_data, merge=True)
+                    product_doc_count += 1
+                    if product_doc_count % 450 == 0:
+                        product_batch.commit()
+                        product_batch = db.batch()
+                        print(f"  --> emart_product {product_doc_count}개 문서 커밋 완료...")
 
             # 남은 문서 커밋
-            batch.commit()
-            print(f"'{json_file}' 파일 업로드 완료. 총 {doc_count}개의 문서가 업로드되었습니다.")
+            price_batch.commit()
+            product_batch.commit()
+            print(f"'{json_file}' 파일 업로드 완료. emart_price: {price_doc_count}개, emart_product: {product_doc_count}개 문서가 업로드되었습니다.")
 
             try:
                 os.remove(json_file)
