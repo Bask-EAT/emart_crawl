@@ -86,8 +86,10 @@ def upload_json_to_firestore(directory_path):
 
                     # emart_product 컬렉션에 상품 정보 저장
                     product_data = {k: v for k, v in product.items() if k in ["id", "category", "image_url", "last_updated", "out_of_stock", "product_address", "product_name", "quantity"]}
+
                     product_ref = db.collection("emart_product").document(product_id)
                     product_batch.set(product_ref, product_data, merge=True)
+
                     product_doc_count += 1
                     if product_doc_count % 450 == 0:
                         product_batch.commit()

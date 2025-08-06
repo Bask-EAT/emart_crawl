@@ -135,7 +135,6 @@ def scrape_emart_category_page(html_content, category_name):
                 "quantity": quantity,
                 "out_of_stock": out_of_stock,
                 "last_updated": last_updated,
-                "is_emb": "R"
             }
         )
 
