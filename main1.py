@@ -27,6 +27,9 @@ app = FastAPI()
 async def root():
     return FileResponse("developer.html")
 
+# @app.get("/chart")
+# async def root():
+#     return FileResponse("chart_viewer.html")
 
 @app.post("/save_categories")
 async def save_categories(request: Request):
