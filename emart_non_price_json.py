@@ -61,8 +61,6 @@ def scrape_emart_category_page(html_content, category_name):
         product_name = ""
         product_address = ""
         image_url = ""
-        quantity = ""
-        out_of_stock = "N"
         last_updated = datetime.now().isoformat()
 
         brand_span = item.select_one("div.mnemitem_tit > span.mnemitem_goods_brand")
@@ -101,7 +99,6 @@ def scrape_emart_category_page(html_content, category_name):
             if item_id_list:
                 id = item_id_list[0]
 
-
         img_tag = item.select_one("div.mnemitem_thmb_v2 > a > div > img")
         if img_tag:
             raw_image_url = ""
@@ -117,14 +114,6 @@ def scrape_emart_category_page(html_content, category_name):
                 else:
                     image_url = "https://emart.ssg.com" + raw_image_url
 
-        quantity_tag = item.select_one("div.mnemitem_pricewrap_v2 > div.unit_price")
-        if quantity_tag:
-            quantity = quantity_tag.get_text(strip=True)
-
-        sold_out_tag = item.select_one("div.mnemitem_thmb_v2 > div.mnemitem_soldout")
-        if sold_out_tag:
-            out_of_stock = "Y"
-
         products_data.append(
             {
                 "id": id,
@@ -132,8 +121,6 @@ def scrape_emart_category_page(html_content, category_name):
                 "product_name": product_name,
                 "product_address": product_address,
                 "image_url": image_url,
-                "quantity": quantity,
-                "out_of_stock": out_of_stock,
                 "last_updated": last_updated,
             }
         )
@@ -175,8 +162,6 @@ def run_scraper():
                             "product_name": product.get("product_name"),
                             "product_address": product.get("product_address"),
                             "image_url": product.get("image_url"),
-                            "quantity": product.get("quantity"),
-                            "out_of_stock": product.get("out_of_stock"),
                             "last_updated": product.get("last_updated"),
                         }
                     )

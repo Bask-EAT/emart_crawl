@@ -39,12 +39,11 @@ def load_categories_from_file(filepath="categories.json"):
     }
 
 
-def scrape_emart_category_page(html_content, category_name):
+def scrape_emart_category_page(html_content):
     """
     제공된 이마트몰 카테고리 HTML 콘텐츠에서 상품 정보를 스크랩합니다.
     Args:
         html_content (str): 이마트몰 카테고리 페이지의 HTML 콘텐츠입니다.
-        category_name (str): 현재 스크래핑 중인 카테고리 이름입니다.
     Returns:
         list: 추출된 정보가 담긴 딕셔너리 목록입니다.
     """
@@ -60,6 +59,8 @@ def scrape_emart_category_page(html_content, category_name):
         id = ""
         original_price = ""
         selling_price = ""
+        quantity = ""
+        out_of_stock = ""
         last_updated = datetime.now().isoformat()
 
         # 첫 번째 선택자 (div > a)에서 href 속성 찾기
@@ -115,12 +116,23 @@ def scrape_emart_category_page(html_content, category_name):
                 .replace("원", "")
                 .replace(",", "")
             )
+        quantity_tag = item.select_one("div.mnemitem_pricewrap_v2 > div.unit_price")
+        if quantity_tag:
+            quantity = quantity_tag.get_text(strip=True)
+
+        sold_out_tag = item.select_one("div.mnemitem_thmb_v2 > div.mnemitem_soldout")
+        if sold_out_tag:
+            out_of_stock = "Y"
+        else:
+            out_of_stock = "N"
 
         products_data.append(
             {
                 "id": id,
                 "original_price": original_price,
                 "selling_price": selling_price,
+                "quantity": quantity,
+                "out_of_stock": out_of_stock,
                 "last_updated": last_updated,
             }
         )
@@ -150,9 +162,7 @@ def run_scraper():
                 response = requests.get(page_url, headers=headers)
                 response.raise_for_status()
                 html_content = response.text
-                scraped_products_on_page = scrape_emart_category_page(
-                    html_content, category_name
-                )
+                scraped_products_on_page = scrape_emart_category_page(html_content)
 
                 # ID와 가격 정보만 추출
                 price_data = []
@@ -162,6 +172,8 @@ def run_scraper():
                             "id": product.get("id"),
                             "original_price": product.get("original_price"),
                             "selling_price": product.get("selling_price"),
+                            "quantity": product.get("quantity"),
+                            "out_of_stock": product.get("out_of_stock"),
                             "last_updated": product.get("last_updated"),
                         }
                     )

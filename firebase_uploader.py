@@ -6,12 +6,11 @@ import json
 import os
 import glob
 import sys
-from add_is_emb import check_and_add_is_emb 
+import requests
+from dotenv import load_dotenv
 
 def initialize_firebase():
-    """
-    Firebase Admin SDK를 초기화합니다.
-    """
+    """ Firebase Admin SDK를 초기화합니다. """
     try:
         if not firebase_admin._apps:
             cred = credentials.Certificate("repository/serviceAccountKey.json")
@@ -22,71 +21,68 @@ def initialize_firebase():
         raise
 
 def get_db():
-    """
-    Firestore 클라이언트 인스턴스를 반환합니다.
-    """
+    """ Firestore 클라이언트 인스턴스를 반환합니다. """
     return firestore.client()
 
-def update_price_history(db, product_id, price_info):
+def update_price_history(db, product_id, out_of_stock, quantity, last_updated, price_info):
     """
-    [수정됨] 가장 최근 가격과 동일하면 DB에 추가하지 않습니다.
+    가격을 비교하여, 변경 시에만 price_history를 업데이트하고 상태를 반환합니다.
+    - 'updated': 가격이 변경되어 history가 추가됨
+    - 'skipped': 가격이 동일하여 history는 추가되지 않음 (상위 필드는 갱신됨)
     """
     price_ref = db.collection("emart_price").document(product_id)
     
     try:
         doc = price_ref.get()
+        price_history = doc.to_dict().get("price_history", []) if doc.exists else []
 
-        if doc.exists:
-            price_history = doc.to_dict().get("price_history", [])
-        else:
-            price_history = []
-
-        # --- [추가된 로직] ---
-        # 가격 기록이 있고, 가장 마지막 기록의 가격이 현재 가격과 동일하면 함수를 종료합니다.
+        price_has_changed = True
         if price_history:
             last_record = price_history[-1]
             if (last_record.get("original_price") == price_info.get("original_price") and
                 last_record.get("selling_price") == price_info.get("selling_price")):
-                return # 아무 작업도 하지 않고 종료
+                price_has_changed = False
 
-        # 가격이 다르거나 첫 기록일 경우, 새로운 정보를 리스트에 추가합니다.
-        price_history.append(price_info)
-
-        # 업데이트된 전체 리스트를 다시 저장합니다.
-        price_update_data = {
-            "id": product_id,
-            "price_history": price_history
+        top_level_update_data = {
+            "id": product_id, "out_of_stock": out_of_stock,
+            "quantity": quantity, "last_updated": last_updated,
         }
-        price_ref.set(price_update_data, merge=True)
+
+        if price_has_changed:
+            price_history.append(price_info)
+            top_level_update_data["price_history"] = price_history
+            price_ref.set(top_level_update_data, merge=True)
+            print(f"가격 ID '{product_id}'가 업데이트 되었습니다")
+            return "updated"
+        else:
+            price_ref.set(top_level_update_data, merge=True)
+            return "skipped"
 
     except Exception as e:
         print(f"상품 ID '{product_id}'의 가격 업데이트 중 오류 발생: {e}")
+        return "error"
 
 def upload_json_to_firestore(directory_path):
-    """
-    지정된 디렉토리의 모든 JSON 파일을 Firestore에 업로드합니다.
-    """
+    """ 지정된 디렉토리의 모든 JSON 파일을 Firestore에 업로드합니다. """
     try:
         initialize_firebase()
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
     db = get_db()
-
-    # 신호기 1:모두 2:가격 3:상품
-    beacon = 0
-    if directory_path == "result_json":
-        beacon = 1
-    elif directory_path == "result_price_json":
-        beacon = 2
-    else :
-        beacon = 3
+    beacon = 1 if directory_path == "result_json" else 2 if directory_path == "result_price_json" else 3
 
     try:
         json_files = glob.glob(os.path.join(directory_path, "*.json"))
         if not json_files:
-            print(f"경고: '{directory_path}' 폴더에 JSON 파일이 없습니다.")
-            return {"status": "warning", "message": f"No JSON files found in '{directory_path}'"}
+            return {"status": "warning", "message": f"'{directory_path}' 폴더에 JSON 파일이 없습니다."}
+
+        # --- [추가] 상세 카운터 초기화 ---
+        price_updated_count = 0
+        price_skipped_count = 0
+        product_new_count = 0
+        product_updated_count = 0
+        product_skipped_count = 0
 
         for json_file in json_files:
             with open(json_file, "r", encoding="utf-8") as f:
@@ -94,55 +90,88 @@ def upload_json_to_firestore(directory_path):
 
             print(f"\n파일 '{json_file}'의 데이터를 Firestore에 업로드합니다.")
 
-            product_batch = db.batch()
-            total_doc_count = 0
-            processed_product_ids = []
-
             for product in products:
                 product_id = product.get("id")
                 if not product_id:
                     continue
-                
-                processed_product_ids.append(product_id)
 
-                # --- 1. emart_price 컬렉션 업데이트 (별도 함수 호출) ---
+                # --- 가격 정보 처리 및 카운팅 ---
                 if beacon in (1, 2):
                     price_info = {
-                        "last_updated": product.get("last_updated"),
                         "original_price": product.get("original_price"),
-                        "selling_price": product.get("selling_price")
+                        "selling_price": product.get("selling_price"),
+                        "last_updated": product.get("last_updated"),
                     }
-                    update_price_history(db, product_id, price_info)
+                    result = update_price_history(
+                        db, product_id, product.get("out_of_stock"),
+                        product.get("quantity"), product.get("last_updated"), price_info
+                    )
+                    if result == "updated":
+                        price_updated_count += 1
+                    elif result == "skipped":
+                        price_skipped_count += 1
                 
-                # --- 2. emart_product 컬렉션 업데이트 로직 ---
+                # --- 상품 정보 처리 및 카운팅 ---
                 if beacon in (1, 3):
-                    product_data = {
-                        k: v for k, v in product.items() 
-                        if k in ["id", "category", "image_url", "last_updated", "out_of_stock", "product_address", "product_name", "quantity"]
-                    }
                     product_ref = db.collection("emart_product").document(product_id)
-                    product_batch.set(product_ref, product_data, merge=True)
-
-                total_doc_count += 1
-                if total_doc_count > 0 and total_doc_count % 200 == 0:
-                    product_batch.commit()
-                    product_batch = db.batch()
-                    print(f"  --> {total_doc_count}개 문서 처리 완료...")
+                    doc = product_ref.get()
+                    
+                    if doc.exists:
+                        existing_data = doc.to_dict()
+                        if (existing_data.get("product_name") != product.get("product_name") or
+                            existing_data.get("image_url") != product.get("image_url")):
+                            update_data = {
+                                "product_name": product.get("product_name"),
+                                "image_url": product.get("image_url"),
+                                "last_updated": product.get("last_updated"),
+                                "is_emb": "R"
+                            }
+                            print(f"상품 ID '{product_id}'가 업데이트 되었습니다")
+                            product_ref.update(update_data)
+                            product_updated_count += 1
+                        else:
+                            product_ref.update({"last_updated": product.get("last_updated")})
+                            product_skipped_count += 1
+                    else:
+                        product_data = {
+                            k: v for k, v in product.items() 
+                            if k in ["id", "category", "image_url", "last_updated", "product_address", "product_name"]
+                        }
+                        product_data["is_emb"] = "R"
+                        product_ref.set(product_data)
+                        product_new_count += 1
             
-            # 남은 상품 정보(product_batch) 커밋
-            product_batch.commit()
-            print(f"'{json_file}' 파일 업로드 완료. 총 {total_doc_count}개 문서가 처리되었습니다.")
-            
-            # --- 3. 갱신된 ID 목록으로 is_emb 확인 함수 호출 ---
-            if beacon in (1,3) :
-                print("\n>> 갱신된 상품 목록의 'is_emb' 필드를 확인합니다...")
-                check_and_add_is_emb(processed_product_ids)
-
             try:
                 os.remove(json_file)
-                print(f"'{json_file}' 파일이 성공적으로 삭제되었습니다.")
             except OSError as e:
-                print(f"파일 삭제 중 오류 발생: {json_file} - {e.strerror}")
+                print(f"파일 삭제 중 오류 발생: {e}")
+
+        # --- [추가] 최종 결과 상세 출력 ---
+        print("\n===== Firestore 업로드 최종 결과 =====")
+        if beacon in (1, 2):
+            print("--- 가격 정보 (emart_price) ---")
+            print(f"  - 가격 변경되어 history 추가: {price_updated_count}개")
+            print(f"  - 가격 동일하여 history 생략: {price_skipped_count}개")
+        if beacon in (1, 3):
+            print("--- 상품 정보 (emart_product) ---")
+            print(f"  - 신규 추가된 상품: {product_new_count}개")
+            print(f"  - 이름/이미지 변경된 상품: {product_updated_count}개")
+            print(f"  - 변경 없어 시간만 갱신된 상품: {product_skipped_count}개")
+        print("======================================")
+
+        # 모든 파일 처리 후 임베딩 서버 호출
+        print("\n>> 모든 업로드 작업 완료. 임베딩 서버에 시작 신호를 보냅니다...")
+        load_dotenv()
+        emb_server_url = os.environ.get("EMB_SERVER")
+        if emb_server_url:
+            try:
+                response = requests.get(f"{emb_server_url}", timeout=10)
+                response.raise_for_status()
+                print(f"임베딩 서버에 성공적으로 신호를 보냈습니다. (상태 코드: {response.status_code})")
+            except requests.exceptions.RequestException as e:
+                print(f"오류: 임베딩 서버({emb_server_url})에 연결할 수 없습니다: {e}")
+        else:
+            print("경고: .env 파일에 EMB_SERVER 환경변수가 설정되지 않았습니다.")
             
         return {"status": "success", "message": "All files uploaded successfully."}
 
@@ -151,34 +180,22 @@ def upload_json_to_firestore(directory_path):
         return {"status": "error", "error": str(e)}
 
 def upload_all_products_to_firebase():
-    """ 모든 상품 정보를 Firestore에 업로드하는 함수 """
     return upload_json_to_firestore("result_json")
 
 def upload_id_price_to_firebase():
-    """ ID와 가격 정보를 Firestore에 업로드하는 함수 """
     return upload_json_to_firestore("result_price_json")
 
 def upload_other_info_to_firebase():
-    """ ID 외 정보를 Firestore에 업로드하는 함수 """
     return upload_json_to_firestore("result_non_price_json")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         command = sys.argv[1]
         if command == "all":
-            print("모든 상품 정보를 Firestore에 업로드합니다.")
             result = upload_all_products_to_firebase()
-            print(f"업로드 결과: {result['status']}")
         elif command == "price":
-            print("ID와 가격 정보를 Firestore에 업로드합니다.")
             result = upload_id_price_to_firebase()
-            print(f"업로드 결과: {result['status']}")
         elif command == "other":
-            print("ID 외 정보를 Firestore에 업로드합니다.")
             result = upload_other_info_to_firebase()
-            print(f"업로드 결과: {result['status']}")
         else:
             print("유효하지 않은 명령입니다. 다음 중 하나를 사용하세요: all, price, other")
-    else:
-        print("사용법: python firebase_uploader.py [all|price|other]")
-        print("예시: python firebase_uploader.py all")
