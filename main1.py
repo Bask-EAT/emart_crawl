@@ -16,12 +16,52 @@ from emart_non_price_json import run_scraper as run_non_price_scraper
 # run_image 엔드포인트를 위해 emart_image.py의 run_emart_image를 임포트
 from emart_image import run_emart_image
 
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
+
+def scheduler_all():
+    """ 전체 상품 스크래핑 및 업로드 작업 """
+    try:
+        print("===== 정기 작업 시작 (매일 11시): 모든 상품 스크래핑 =====")
+        run_all_scraper()
+        print("===== 스크래핑 완료. 파이어베이스 업로드를 시작합니다. =====")
+        upload_all_products_to_firebase()
+        print("===== 모든 정기 작업 완료 =====")
+    except Exception as e:
+        print(f"정기 작업(전체) 중 오류 발생: {e}")
+
+def scheduler_price():
+    """ 가격 정보 스크래핑 및 업로드 작업 """
+    try:
+        print("===== 정기 작업 시작 (매시 정각): 상품 가격 스크래핑 =====")
+        run_price_scraper()
+        print("===== 스크래핑 완료. 가격 파이어베이스 업로드를 시작합니다. =====")
+        upload_id_price_to_firebase()
+        print("===== 모든 정기 작업 완료 =====")
+    except Exception as e:
+        print(f"정기 작업(가격) 중 오류 발생: {e}")
+
 # http://127.0.0.1:8000/docs
 # http://127.0.0.1:8000/redoc
 # uvicorn main1:app --reload --port 8420
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 앱이 시작될 때 실행할 코드
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(scheduler_all, 'cron', hour=11, minute=0)
+    scheduler.add_job(scheduler_price, 'cron', minute=22)
+    scheduler.start()
+    print("스케줄러가 시작되었습니다.")
+    
+    yield # 앱이 실행되는 동안 이 지점에서 대기합니다.
+    
+    # 앱이 종료될 때 실행할 코드
+    scheduler.shutdown()
+    print("스케줄러가 종료되었습니다.")
 
+app = FastAPI(lifespan=lifespan)
+scheduler = BackgroundScheduler()
 
 @app.get("/")
 async def root():
@@ -130,6 +170,23 @@ async def run_firebase_other():
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
+@app.post("/scheduler/on")
+async def resume_scheduler():
+    """일시정지된 스케줄러를 다시 시작합니다."""
+    try:
+        scheduler.resume()
+        return {"status": "success", "message": "스케줄러가 다시 시작되었습니다."}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@app.post("/scheduler/off")
+async def pause_scheduler():
+    """실행 중인 스케줄러를 일시정지합니다."""
+    try:
+        scheduler.pause()
+        return {"status": "success", "message": "스케줄러가 일시정지되었습니다."}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run("main1:app", host="0.0.0.0", port=8420, reload=True)

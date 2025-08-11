@@ -52,7 +52,6 @@ def update_price_history(db, product_id, out_of_stock, quantity, last_updated, p
             price_history.append(price_info)
             top_level_update_data["price_history"] = price_history
             price_ref.set(top_level_update_data, merge=True)
-            print(f"가격 ID '{product_id}'가 업데이트 되었습니다")
             return "updated"
         else:
             price_ref.set(top_level_update_data, merge=True)
@@ -108,8 +107,10 @@ def upload_json_to_firestore(directory_path):
                     )
                     if result == "updated":
                         price_updated_count += 1
+                        print(f"가격 ID '{product_id}'가 업데이트 되었습니다 [{price_updated_count}]")
                     elif result == "skipped":
                         price_skipped_count += 1
+                        print(f"가격 ID '{product_id}'가 패스 되었습니다 [{price_skipped_count}]")
                 
                 # --- 상품 정보 처리 및 카운팅 ---
                 if beacon in (1, 3):
@@ -126,12 +127,13 @@ def upload_json_to_firestore(directory_path):
                                 "last_updated": product.get("last_updated"),
                                 "is_emb": "R"
                             }
-                            print(f"상품 ID '{product_id}'가 업데이트 되었습니다")
                             product_ref.update(update_data)
                             product_updated_count += 1
+                            print(f"상품 ID '{product_id}'가 업데이트 되었습니다 [{product_updated_count}]")
                         else:
                             product_ref.update({"last_updated": product.get("last_updated")})
                             product_skipped_count += 1
+                            print(f"상품 ID '{product_id}'가 패스 되었습니다 [{product_skipped_count}]")
                     else:
                         product_data = {
                             k: v for k, v in product.items() 
