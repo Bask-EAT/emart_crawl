@@ -1,0 +1,35 @@
+z_add_is_emb.py
+z_chart_viewer.html
+z_create_price_chart.py
+z_del_tem_price.py
+z_emart_price_updater.py
+
+# Python 캐시 파일
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 가상환경 폴더
+venv/
+.venv/
+
+# 환경 설정 파일 (컨테이너 내부에서 별도로 설정)
+.env
+repository/serviceAccountKey.json
+
+# 결과 및 데이터 파일 (컨테이너 실행 시 생성되므로 이미지에 포함시키지 않음)
+result_json/
+result_non_price_json/
+result_price_json/
+result_image/
+result_chart/
+categories.json
+chart_index.html
+template.html
+
+# 기타
+*.log
+.DS_Store
+.vscode/
+.git/
