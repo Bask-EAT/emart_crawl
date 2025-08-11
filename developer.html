@@ -146,6 +146,13 @@
                     style="width:80px;"></label>
             <button type="submit" style="margin-left:16px;">저장</button>
         </form>
+
+        <form id="embServerForm" style="margin-top: 24px;">
+            <h2>임베딩 서버 주소 설정</h2>
+            <label>서버 URL: <input type="text" id="embServerInput" placeholder="https://...ngrok-free.app" style="width:300px; padding: 5px;"></label>
+            <button type="submit" style="margin-left:16px;">저장</button>
+        </form>
+
         <div class="result" id="envResultMsg" style="display:none;"></div>
         <div class="result" id="resultMsg" style="display:none;"></div>
         <div id="toast"></div>
@@ -232,6 +239,25 @@
             });
             if (res.ok) {
                 showToast('.env 파일이 성공적으로 저장되었습니다!');
+            } else {
+                showToast('저장에 실패했습니다.');
+            }
+        };
+
+        document.getElementById('embServerForm').onsubmit = async function (e) {
+            e.preventDefault();
+            const embServerUrl = document.getElementById('embServerInput').value.trim();
+            if (!embServerUrl) {
+                showToast('임베딩 서버 URL을 입력하세요.');
+                return;
+            }
+            const res = await fetch('/save_env', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ EMB_SERVER: embServerUrl })
+            });
+            if (res.ok) {
+                showToast('임베딩 서버 주소가 .env 파일에 저장되었습니다!');
             } else {
                 showToast('저장에 실패했습니다.');
             }

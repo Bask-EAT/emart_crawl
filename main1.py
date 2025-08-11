@@ -82,21 +82,29 @@ async def save_categories(request: Request):
 @app.post("/save_env")
 async def save_env(request: Request):
     data = await request.json()
-    lines = []
-    # 기존 .env 파일 읽기
     env_path = ".env"
+    
+    # 1. 기존 .env 파일 내용을 읽어와 딕셔너리로 변환
+    env_dict = {}
     if os.path.exists(env_path):
         with open(env_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    env_dict = {}
-    for line in lines:
-        if "=" in line:
-            k, v = line.strip().split("=", 1)
-            env_dict[k] = v
-    # 값 업데이트
-    env_dict["EMART_START_PAGE"] = str(data.get("EMART_START_PAGE", 1))
-    env_dict["EMART_END_PAGE"] = str(data.get("EMART_END_PAGE", 30))
-    # 파일로 저장
+            for line in f:
+                if "=" in line:
+                    k, v = line.strip().split("=", 1)
+                    env_dict[k] = v
+
+    # 2. 요청받은 데이터가 있으면 값 업데이트
+    if "EMART_START_PAGE" in data:
+        env_dict["EMART_START_PAGE"] = str(data.get("EMART_START_PAGE", 1))
+    if "EMART_END_PAGE" in data:
+        env_dict["EMART_END_PAGE"] = str(data.get("EMART_END_PAGE", 30))
+    
+    if "EMB_SERVER" in data:
+        # f-string을 사용하여 받아온 URL 값 양쪽에 쌍따옴표를 추가합니다.
+        server_url = data.get("EMB_SERVER", "")
+        env_dict["EMB_SERVER"] = f'"{server_url}"'
+
+    # 3. 딕셔너리 내용을 다시 .env 파일 형식으로 저장
     with open(env_path, "w", encoding="utf-8") as f:
         for k, v in env_dict.items():
             f.write(f"{k}={v}\n")
