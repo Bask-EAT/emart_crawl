@@ -1,3 +1,5 @@
+# 오래된 상품 재고 없음으로 변경
+
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime, timedelta

@@ -111,12 +111,12 @@ def upload_json_to_firestore(directory_path):
                     elif result == "skipped":
                         price_skipped_count += 1
                         print(f"가격 ID '{product_id}'가 패스 되었습니다 [{price_skipped_count}]")
-                
+
                 # --- 상품 정보 처리 및 카운팅 ---
                 if beacon in (1, 3):
                     product_ref = db.collection("emart_product").document(product_id)
                     doc = product_ref.get()
-                    
+
                     if doc.exists:
                         existing_data = doc.to_dict()
                         if (existing_data.get("product_name") != product.get("product_name") or
@@ -142,7 +142,10 @@ def upload_json_to_firestore(directory_path):
                         product_data["is_emb"] = "R"
                         product_ref.set(product_data)
                         product_new_count += 1
-            
+                        print(
+                            f"상품 ID '{product_id}'가 새로 생성 되었습니다 [{product_new_count}]"
+                        )
+
             try:
                 os.remove(json_file)
             except OSError as e:
@@ -174,7 +177,7 @@ def upload_json_to_firestore(directory_path):
                 print(f"오류: 임베딩 서버({emb_server_url})에 연결할 수 없습니다: {e}")
         else:
             print("경고: .env 파일에 EMB_SERVER 환경변수가 설정되지 않았습니다.")
-            
+
         return {"status": "success", "message": "All files uploaded successfully."}
 
     except Exception as e:

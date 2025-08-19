@@ -1,3 +1,5 @@
+# id 입력 >> 사이트 스크래핑해서 가격 정보의 문자열 출력
+
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime

@@ -1,10 +1,8 @@
 import os
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
 import json
-import sys
-from io import StringIO
 from firebase_uploader import (upload_all_products_to_firebase,upload_id_price_to_firebase,upload_other_info_to_firebase)
 
 # 스크래핑 스크립트 파일들을 임포트합니다.
@@ -43,19 +41,19 @@ def scheduler_price():
 
 # http://127.0.0.1:8000/docs
 # http://127.0.0.1:8000/redoc
-# uvicorn main1:app --reload --port 8420
+# uvicorn main1:app --reload --port 8427
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 앱이 시작될 때 실행할 코드
     scheduler = BackgroundScheduler()
-    scheduler.add_job(scheduler_all, 'cron', hour=11, minute=0)
-    scheduler.add_job(scheduler_price, 'cron', minute=22)
+    scheduler.add_job(scheduler_all, 'cron', hour=11, minute=20)
+    scheduler.add_job(scheduler_price, "cron", hour="0-10,12-23", minute=20)
     scheduler.start()
     print("스케줄러가 시작되었습니다.")
-    
+
     yield # 앱이 실행되는 동안 이 지점에서 대기합니다.
-    
+
     # 앱이 종료될 때 실행할 코드
     scheduler.shutdown()
     print("스케줄러가 종료되었습니다.")
