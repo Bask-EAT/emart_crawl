@@ -1,5 +1,3 @@
-# 오래된 상품 정보를 갱신. 아직도 재고가 없으면 그냥 필드삭제
-
 import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -17,7 +15,6 @@ import random
 
 def initialize_firebase():
     """Firebase Admin SDK를 초기화합니다."""
-    # ... (내용 동일)
     if not firebase_admin._apps:
         try:
             cred = credentials.Certificate("repository/serviceAccountKey.json")
@@ -29,8 +26,7 @@ def initialize_firebase():
 
 
 def scrape_single_product(product_id: str, retry_count=0) -> Union[Dict, None]:
-    """[수정됨] 429 에러 발생 시 10번 재시도하고, 원가 대체 경로를 추가한 스크래핑 함수"""
-    # ... (내용 동일)
+    """[수정됨] 품절 시 "Y" 문자열 대신 out_of_stock 키를 포함한 딕셔너리 반환"""
     url = f"https://emart.ssg.com/item/itemView.ssg?itemId={product_id}"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -39,6 +35,13 @@ def scrape_single_product(product_id: str, retry_count=0) -> Union[Dict, None]:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
+
+        out_of_stock = "Y" if "품절" in str(soup.select_one(".cdtl_btn_wrap3")) else "N"
+
+        if out_of_stock == "Y":
+            # 품절이어도 일관된 데이터 형태를 반환
+            return {"out_of_stock": "Y"}
+
         selling_price_tag = soup.select_one("span.cdtl_new_price.notranslate > em")
         selling_price = (
             selling_price_tag.get_text(strip=True).replace(",", "").replace("원", "")
@@ -69,7 +72,7 @@ def scrape_single_product(product_id: str, retry_count=0) -> Union[Dict, None]:
         quantity = (
             " ".join(quantity_tag.get_text(strip=True).split()) if quantity_tag else ""
         )
-        out_of_stock = "Y" if "품절" in str(soup.select_one(".cdtl_btn_wrap3")) else "N"
+
         return {
             "id": product_id,
             "original_price": original_price,
@@ -111,7 +114,7 @@ def find_and_update_stale_products():
     try:
         initialize_firebase()
         db = firestore.client()
-        one_day_ago_iso = (datetime.now() - timedelta(days=6)).isoformat()
+        one_day_ago_iso = (datetime.now() - timedelta(days=10)).isoformat()
         print(f"🚀 기준 시간: {one_day_ago_iso} 이전에 업데이트된 상품을 찾습니다.\n")
         product_collection_ref = db.collection("emart_product")
         query = product_collection_ref.where(
@@ -121,18 +124,39 @@ def find_and_update_stale_products():
         if not docs_to_update:
             print("✅ 모든 상품이 최신 상태입니다.")
             return
-        stale_product_ids = [doc.id for doc in docs_to_update]
+
+        # [수정] ID뿐만 아니라 기존 데이터도 함께 전달하여 DB 읽기 최소화
+        stale_products = {doc.id: doc.to_dict() for doc in docs_to_update}
         print(
-            f"🔍 총 {len(stale_product_ids)}개의 오래된 상품을 찾았습니다. 업데이트를 시작합니다.\n"
+            f"🔍 총 {len(stale_products)}개의 오래된 상품을 찾았습니다. 업데이트를 시작합니다.\n"
         )
-        scrape_and_update_products_by_ids(stale_product_ids)
+        scrape_and_update_products_by_ids(stale_products)
     except Exception as e:
         print(f"\n🔥 작업 중 심각한 오류가 발생했습니다: {e}")
 
 
-def scrape_and_update_products_by_ids(product_ids: List[str]):
+def delete_product_from_all_collections(product_ids: List[str]):
+    """주어진 ID 목록에 해당하는 상품 문서를 emart_price, emart_product, emart_vector에서 모두 삭제합니다."""
+    # ... (내용 동일)
+    try:
+        initialize_firebase()
+        db = firestore.client()
+        batch = db.batch()
+        for pid in product_ids:
+            batch.delete(db.collection("emart_price").document(pid))
+            batch.delete(db.collection("emart_product").document(pid))
+            batch.delete(db.collection("emart_vector").document(pid))
+        batch.commit()
+        print(
+            f"\n✨ {len(product_ids)}개 ID에 대한 문서 삭제 작업이 성공적으로 완료되었습니다."
+        )
+    except Exception as e:
+        print(f"\n🔥 작업 중 오류가 발생했습니다: {e}")
+
+
+def scrape_and_update_products_by_ids(stale_products: Dict[str, Dict]):
     """
-    [수정됨] 주어진 ID 목록의 정보를 스크래핑하고, 모든 DB 업데이트를 Batch로 처리합니다.
+    [수정됨] 주어진 상품 정보를 스크래핑하고, 모든 DB 업데이트를 Batch로 효율적으로 처리합니다.
     """
     db = firestore.client()
     price_collection_ref = db.collection("emart_price")
@@ -140,6 +164,9 @@ def scrape_and_update_products_by_ids(product_ids: List[str]):
 
     batch = db.batch()
     updated_count = 0
+    deleted_count = 0
+
+    product_ids = list(stale_products.keys())
 
     for i, product_id in enumerate(product_ids):
         print(f"({i+1}/{len(product_ids)}) ID: {product_id} 처리 중...")
@@ -148,59 +175,48 @@ def scrape_and_update_products_by_ids(product_ids: List[str]):
         if not scraped_data:
             continue
 
-        # --- [핵심 수정] 모든 DB 작업을 Batch에 추가 ---
+        if scraped_data.get("out_of_stock") == "Y":
+            # [수정] 치명적 오류 해결
+            delete_product_from_all_collections([product_id])
+            deleted_count += 1
+            print(f"  -> ID: {product_id} 품절로 간주되어 삭제되었습니다.")
+            continue
 
-        # 1. emart_price 문서 참조 및 기존 데이터 가져오기 (쓰기 전 읽기는 필요)
+        # --- [핵심 수정] DB 읽기 없이 Batch 작업만 수행 ---
         price_doc_ref = price_collection_ref.document(product_id)
-        price_doc = price_doc_ref.get()
-        price_history = (
-            price_doc.to_dict().get("price_history", []) if price_doc.exists else []
-        )
 
-        # 2. 가격 변경 여부 확인
-        price_info = {
-            "original_price": scraped_data["original_price"],
-            "selling_price": scraped_data["selling_price"],
-            "last_updated": scraped_data["last_updated"],
-        }
-        prices_changed = (
-            not price_history
-            or str(price_history[-1].get("original_price"))
-            != price_info["original_price"]
-            or str(price_history[-1].get("selling_price"))
-            != price_info["selling_price"]
-        )
-
-        # 3. emart_price 업데이트 내용 구성
         price_update_payload = {
             "id": product_id,
             "out_of_stock": scraped_data["out_of_stock"],
             "quantity": scraped_data["quantity"],
             "last_updated": scraped_data["last_updated"],
+            "price_history": firestore.ArrayUnion(
+                [
+                    {
+                        "original_price": scraped_data["original_price"],
+                        "selling_price": scraped_data["selling_price"],
+                        "last_updated": scraped_data["last_updated"],
+                    }
+                ]
+            ),
         }
-        if prices_changed:
-            price_history.append(price_info)
-            price_update_payload["price_history"] = price_history
 
-        # 4. emart_price와 emart_product 업데이트를 모두 Batch에 추가
         batch.set(price_doc_ref, price_update_payload, merge=True)
-
         product_doc_ref = product_collection_ref.document(product_id)
         batch.update(product_doc_ref, {"last_updated": scraped_data["last_updated"]})
 
         updated_count += 1
-        if (
-            updated_count > 0 and updated_count % 50 == 0
-        ):  # 배치 쓰기는 최대 500개, 읽기 1 + 쓰기 1 = 2개 작업이므로 225쌍이 안전
+        if updated_count > 0 and updated_count % 50 == 0:
             batch.commit()
             batch = db.batch()
 
-        time.sleep(random.uniform(1, 2))
+        time.sleep(random.uniform(1, 3))
 
     if updated_count > 0:
         batch.commit()
 
     print(f"\n✨ 총 {updated_count}개 상품 정보를 성공적으로 갱신했습니다.")
+    print(f"🗑️ 총 {deleted_count}개 상품을 품절 처리 후 삭제했습니다.")
 
 
 if __name__ == "__main__":
