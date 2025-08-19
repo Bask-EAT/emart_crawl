@@ -20,7 +20,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 def scheduler_all():
     """ 전체 상품 스크래핑 및 업로드 작업 """
     try:
-        print("===== 정기 작업 시작 (매일 11시): 모든 상품 스크래핑 =====")
+        print("===== 정기 작업 시작 (매일 10시): 모든 상품 스크래핑 =====")
         run_all_scraper()
         print("===== 스크래핑 완료. 파이어베이스 업로드를 시작합니다. =====")
         upload_all_products_to_firebase()
@@ -39,6 +39,16 @@ def scheduler_price():
     except Exception as e:
         print(f"정기 작업(가격) 중 오류 발생: {e}")
 
+def scheduler_old_products():
+    """ 오래된 상품 정보 갱신 작업 """
+    try:
+        print("===== 정기 작업 시작 (매일 11시): 오래된 상품 정보 갱신 =====")
+        from update_old_products import find_and_update_stale_products
+        find_and_update_stale_products()
+        print("===== 오래된 상품 정보 갱신 완료 =====")
+    except Exception as e:
+        print(f"정기 작업(오래된 상품) 중 오류 발생: {e}")
+
 # http://127.0.0.1:8000/docs
 # http://127.0.0.1:8000/redoc
 # uvicorn main1:app --reload --port 8427
@@ -47,10 +57,11 @@ def scheduler_price():
 async def lifespan(app: FastAPI):
     # 앱이 시작될 때 실행할 코드
     scheduler = BackgroundScheduler()
-    scheduler.add_job(scheduler_all, 'cron', hour=11, minute=20)
-    scheduler.add_job(scheduler_price, "cron", hour="0-10,12-23", minute=20)
-    scheduler.start()
-    print("스케줄러가 시작되었습니다.")
+    scheduler.add_job(scheduler_price, "cron", hour="0-9,12-23", minute=20)
+    scheduler.add_job(scheduler_all, 'cron', hour=10, minute=20)
+    scheduler.add_job(scheduler_old_products, 'cron', hour=11, minute=20)
+    scheduler.start(paused=True)
+    print("스케줄러가 비활성화된 상태로 시작되었습니다. (초기 상태: OFF)")
 
     yield # 앱이 실행되는 동안 이 지점에서 대기합니다.
 

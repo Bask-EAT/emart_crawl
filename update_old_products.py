@@ -1,4 +1,4 @@
-# 오래된 상품 정보를 갱신
+# 오래된 상품 정보를 갱신. 아직도 재고가 없으면 그냥 필드삭제
 
 import firebase_admin
 from firebase_admin import credentials, firestore
