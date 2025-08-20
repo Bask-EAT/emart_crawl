@@ -22,6 +22,7 @@
 
         h1 {
             color: #2d7be5;
+            margin: 0;
         }
 
         h2 {
@@ -35,6 +36,18 @@
             font-weight: bold;
             color: #151377;
             margin-left: 8px;
+        }
+
+        #category-monitor {
+            font-size: 0.8em;
+            font-weight: normal;
+            color: #333;
+            background-color: #f0f8ff;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         .category-list {
@@ -111,6 +124,7 @@
 <body>
     <div class="container">
         <h1>JSON 파일 생성기</h1>
+        <div id="category-monitor">(현재 카테고리: 불러오는 중...)</div>
         <form id="categoryForm">
             <div style="margin-bottom:16px;">
                 <button type="button" id="selectAllBtn" style="margin-right:8px;">모두 선택</button>
@@ -186,9 +200,11 @@
         };
 
         const listDiv = document.querySelector('.category-list');
+        
         const schedulerStatusDisplay = document.getElementById('scheduler-status-display');
         const pageRangeDisplay = document.getElementById('page-range-display');
         const embServerDisplay = document.getElementById('emb-server-display');
+        const categoryMonitor = document.getElementById('category-monitor');
 
         window.addEventListener('load', loadCurrentSettings);
 
@@ -212,6 +228,14 @@
                     // 임베딩 서버 주소 업데이트 (따옴표 제거)
                     const embServer = (envData.EMB_SERVER || '설정 안됨').replace(/"/g, '');
                     embServerDisplay.innerHTML = `(현재 주소 : <b>${embServer}</b>)`;
+
+                    // [추가] categories.json 키 목록 표시
+                    if (data.categories && typeof data.categories === 'object') {
+                        const categoryKeys = Object.keys(data.categories);
+                        categoryMonitor.textContent = `(현재 카테고리${categoryKeys.length}개: ${categoryKeys.join(', ')})`;
+                    } else {
+                        categoryMonitor.textContent = '(categories.json 파일을 찾을 수 없거나 형식이 잘못되었습니다.)';
+                    }
 
                 } catch (error) {
                     console.error("설정 로딩 실패:", error);
