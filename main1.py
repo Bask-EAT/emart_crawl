@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 import json
 from firebase_uploader import (upload_all_products_to_firebase,upload_id_price_to_firebase,upload_other_info_to_firebase)
+from dotenv import load_dotenv, set_key, dotenv_values
 
 # 스크래핑 스크립트 파일들을 임포트합니다.
 # scrape_all_products.py의 run_scraper를 run_all_scraper로 임포트
@@ -56,12 +57,23 @@ def scheduler_old_products():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 앱이 시작될 때 실행할 코드
+
+    load_dotenv()
     scheduler = BackgroundScheduler()
-    scheduler.add_job(scheduler_price, "cron", hour="0-9,12-23", minute=20)
-    scheduler.add_job(scheduler_all, 'cron', hour=10, minute=20)
-    scheduler.add_job(scheduler_old_products, 'cron', hour=11, minute=20)
-    scheduler.start(paused=True)
-    print("스케줄러가 비활성화된 상태로 시작되었습니다. (초기 상태: OFF)")
+    scheduler.add_job(scheduler_price, "cron", hour="0-9,12-23", minute=30)
+    scheduler.add_job(scheduler_all, 'cron', hour=10, minute=30)
+    scheduler.add_job(scheduler_old_products, 'cron', hour=11, minute=30)
+
+    is_scheduler_enabled = (
+        os.environ.get("SCHEDULER_ENABLED", "False").lower() == "true"
+    )
+
+    if is_scheduler_enabled:
+        scheduler.start()
+        print("스케줄러가 시작되었습니다.")
+    else:
+        scheduler.start(paused=True)
+        print("스케줄러가 비활성화된 상태로 시작되었습니다. (초기 상태: OFF)")
 
     yield # 앱이 실행되는 동안 이 지점에서 대기합니다.
 
@@ -90,34 +102,31 @@ async def save_categories(request: Request):
 
 @app.post("/save_env")
 async def save_env(request: Request):
-    data = await request.json()
-    env_path = ".env"
-    
-    # 1. 기존 .env 파일 내용을 읽어와 딕셔너리로 변환
-    env_dict = {}
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            for line in f:
-                if "=" in line:
-                    k, v = line.strip().split("=", 1)
-                    env_dict[k] = v
+    """
+    [수정됨] set_key를 사용하여 .env 파일의 값을 간단하게 수정합니다.
+    """
+    try:
+        data = await request.json()
+        env_path = ".env"
 
-    # 2. 요청받은 데이터가 있으면 값 업데이트
-    if "EMART_START_PAGE" in data:
-        env_dict["EMART_START_PAGE"] = str(data.get("EMART_START_PAGE", 1))
-    if "EMART_END_PAGE" in data:
-        env_dict["EMART_END_PAGE"] = str(data.get("EMART_END_PAGE", 30))
-    
-    if "EMB_SERVER" in data:
-        # f-string을 사용하여 받아온 URL 값 양쪽에 쌍따옴표를 추가합니다.
-        server_url = data.get("EMB_SERVER", "")
-        env_dict["EMB_SERVER"] = f'"{server_url}"'
+        # 요청받은 데이터에 포함된 각 키에 대해 set_key를 실행합니다.
+        if "EMART_START_PAGE" in data:
+            set_key(env_path, "EMART_START_PAGE", str(data["EMART_START_PAGE"]))
 
-    # 3. 딕셔너리 내용을 다시 .env 파일 형식으로 저장
-    with open(env_path, "w", encoding="utf-8") as f:
-        for k, v in env_dict.items():
-            f.write(f"{k}={v}\n")
-    return {"status": "success"}
+        if "EMART_END_PAGE" in data:
+            set_key(env_path, "EMART_END_PAGE", str(data["EMART_END_PAGE"]))
+
+        if "EMB_SERVER" in data:
+            # URL 값에 쌍따옴표를 추가하여 저장합니다.
+            server_url = data["EMB_SERVER"]
+            set_key(env_path, "EMB_SERVER", f'"{server_url}"')
+
+        return {
+            "status": "success",
+            "message": ".env 파일이 성공적으로 업데이트되었습니다.",
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 @app.post("/run_json")
@@ -191,6 +200,7 @@ async def run_firebase_other():
 async def resume_scheduler():
     """일시정지된 스케줄러를 다시 시작합니다."""
     try:
+        set_key(".env", "SCHEDULER_ENABLED", "True")
         scheduler.resume()
         return {"status": "success", "message": "스케줄러가 다시 시작되었습니다."}
     except Exception as e:
@@ -200,10 +210,35 @@ async def resume_scheduler():
 async def pause_scheduler():
     """실행 중인 스케줄러를 일시정지합니다."""
     try:
+        set_key(".env", "SCHEDULER_ENABLED", "False")
         scheduler.pause()
         return {"status": "success", "message": "스케줄러가 일시정지되었습니다."}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/settings")
+async def get_current_settings():
+    """
+    현재 설정된 categories.json과 .env 파일의 내용을 JSON으로 반환합니다.
+    """
+    settings = {}
+
+    # categories.json 파일 읽기
+    try:
+        with open("categories.json", "r", encoding="utf-8") as f:
+            settings["categories"] = json.load(f)
+    except FileNotFoundError:
+        settings["categories"] = {"오류": "categories.json 파일을 찾을 수 없습니다."}
+    except json.JSONDecodeError:
+        settings["categories"] = {"오류": "categories.json 파일 형식이 잘못되었습니다."}
+
+    # .env 파일 읽기
+    # dotenv_values는 .env 파일을 딕셔너리로 안전하게 읽어옵니다.
+    settings["env"] = dotenv_values(".env")
+
+    return settings
+
 
 if __name__ == "__main__":
     uvicorn.run("main1:app", host="0.0.0.0", port=8420, reload=True)

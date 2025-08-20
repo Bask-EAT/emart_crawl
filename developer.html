@@ -30,6 +30,13 @@
             margin-top: 32px;
         }
 
+        h2 > span {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #151377;
+            margin-left: 8px;
+        }
+
         .category-list {
             margin: 24px 0;
         }
@@ -134,7 +141,7 @@
         </div>
         <hr style="margin:16px 0;">
 
-        <h2>스케줄러 키기/끄기</h2>
+        <h2>스케줄러 키기/끄기 <span id="scheduler-status-display"></span></h2>
         <div class="button-group">
             <button type="button" id="schedulerOnBtn" style="background:#912641;">On</button>
             <button type="button" id="schedulerOffBtn" style="background:#412fac;">Off</button>
@@ -142,7 +149,7 @@
         <hr style="margin:16px 0;">
         
         <form id="envForm">
-            <h2>페이지 범위 설정</h2>
+            <h2>페이지 범위 설정 <span id="page-range-display"></span></h2>
             <label>시작 페이지: <input type="number" id="startPageInput" min="1" value="1" style="width:80px;"></label>
             <label style="margin-left:16px;">끝 페이지: <input type="number" id="endPageInput" min="1" value="30"
                     style="width:80px;"></label>
@@ -150,7 +157,7 @@
         </form>
 
         <form id="embServerForm" style="margin-top: 24px;">
-            <h2>임베딩 서버 주소 설정</h2>
+            <h2>임베딩 서버 주소 설정 <span id="emb-server-display"></span></h2>
             <label>서버 URL: <input type="text" id="embServerInput" placeholder="https://...ngrok-free.app" style="width:300px; padding: 5px;"></label>
             <button type="submit" style="margin-left:16px;">저장</button>
         </form>
@@ -177,7 +184,43 @@
             "Snacks_Treats": "6000213362",
             "Bakery_Jam": "6000213412"
         };
+
         const listDiv = document.querySelector('.category-list');
+        const schedulerStatusDisplay = document.getElementById('scheduler-status-display');
+        const pageRangeDisplay = document.getElementById('page-range-display');
+        const embServerDisplay = document.getElementById('emb-server-display');
+
+        window.addEventListener('load', loadCurrentSettings);
+
+        async function loadCurrentSettings() {
+                try {
+                    // API에서 현재 설정값을 가져옵니다.
+                    const res = await fetch('/api/settings');
+                    if (!res.ok) throw new Error('API 호출 실패');
+                    const data = await res.json();
+                    const envData = data.env;
+
+                    // 스케줄러 상태 업데이트
+                    const schedulerEnabled = envData.SCHEDULER_ENABLED === 'True';
+                    schedulerStatusDisplay.innerHTML = `(현재 상태 : <b style="color: ${schedulerEnabled ? 'green' : 'red'};">${schedulerEnabled ? '켜짐' : '꺼짐'}</b>)`;
+
+                    // 페이지 범위 업데이트
+                    const startPage = envData.EMART_START_PAGE || 'N/A';
+                    const endPage = envData.EMART_END_PAGE || 'N/A';
+                    pageRangeDisplay.innerHTML = `(현재 상태 : <b>${startPage} ~ ${endPage}</b>)`;
+
+                    // 임베딩 서버 주소 업데이트 (따옴표 제거)
+                    const embServer = (envData.EMB_SERVER || '설정 안됨').replace(/"/g, '');
+                    embServerDisplay.innerHTML = `(현재 주소 : <b>${embServer}</b>)`;
+
+                } catch (error) {
+                    console.error("설정 로딩 실패:", error);
+                    schedulerStatusDisplay.textContent = '[상태 로딩 실패]';
+                    pageRangeDisplay.textContent = '[상태 로딩 실패]';
+                    embServerDisplay.textContent = '[상태 로딩 실패]';
+                }
+        }   
+
         Object.entries(categories).forEach(([name, id]) => {
             const div = document.createElement('div');
             div.className = 'category-item';
@@ -221,6 +264,7 @@
             });
             if (res.ok) {
                 showToast('categories.json 파일이 성공적으로 저장되었습니다!');
+                loadCurrentSettings();
             } else {
                 showToast('저장에 실패했습니다.');
             }
@@ -242,6 +286,7 @@
             });
             if (res.ok) {
                 showToast('.env 파일이 성공적으로 저장되었습니다!');
+                loadCurrentSettings();
             } else {
                 showToast('저장에 실패했습니다.');
             }
@@ -261,6 +306,7 @@
             });
             if (res.ok) {
                 showToast('임베딩 서버 주소가 .env 파일에 저장되었습니다!');
+                loadCurrentSettings();
             } else {
                 showToast('저장에 실패했습니다.');
             }
@@ -345,6 +391,7 @@
             if (res.ok) {
                 const data = await res.json();
                 showToast(data.message || '스케줄러가 다시 시작되었습니다!');
+                loadCurrentSettings();
             } else {
                 showToast('스케줄러 시작에 실패했습니다.');
             }
@@ -356,10 +403,13 @@
             if (res.ok) {
                 const data = await res.json();
                 showToast(data.message || '스케줄러가 일시정지되었습니다!');
+                loadCurrentSettings();
             } else {
                 showToast('스케줄러 일시정지에 실패했습니다.');
             }
         };
+
+        
     </script>
 </body>
 </html>

@@ -114,7 +114,7 @@ def find_and_update_stale_products():
     try:
         initialize_firebase()
         db = firestore.client()
-        one_day_ago_iso = (datetime.now() - timedelta(days=10)).isoformat()
+        one_day_ago_iso = (datetime.now() - timedelta(days=7)).isoformat()
         print(f"🚀 기준 시간: {one_day_ago_iso} 이전에 업데이트된 상품을 찾습니다.\n")
         product_collection_ref = db.collection("emart_product")
         query = product_collection_ref.where(
