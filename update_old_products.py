@@ -109,7 +109,7 @@ def scrape_single_product(product_id: str, retry_count=0) -> Union[Dict, None]:
 
 
 def find_and_update_stale_products():
-    """Firestore 쿼리를 사용하여 업데이트가 하루 이상 지난 상품만 찾아 갱신합니다."""
+    """Firestore 쿼리를 사용하여 업데이트가 지난 상품만 찾아 갱신합니다."""
     # ... (내용 동일)
     try:
         initialize_firebase()
@@ -117,20 +117,47 @@ def find_and_update_stale_products():
         one_day_ago_iso = (datetime.now() - timedelta(days=7)).isoformat()
         print(f"🚀 기준 시간: {one_day_ago_iso} 이전에 업데이트된 상품을 찾습니다.\n")
         product_collection_ref = db.collection("emart_product")
+
         query = product_collection_ref.where(
             filter=FieldFilter("last_updated", "<", one_day_ago_iso)
         )
         docs_to_update = list(query.stream())
+
         if not docs_to_update:
-            print("✅ 모든 상품이 최신 상태입니다.")
+            print("✅ 모든 상품이 최신 상태입니다. 업데이트할 항목이 없습니다.")
+        else:
+            stale_product_ids = [doc.id for doc in docs_to_update]
+            print(
+                f"🔍 총 {len(stale_product_ids)}개의 오래된 상품을 찾았습니다. 업데이트를 시작합니다.\n"
+            )
+            scrape_and_update_products_by_ids(stale_product_ids)
+
+        # --- [핵심 추가 로직] ---
+        # --- 2단계: 오래된 가격 문서 삭제 ---
+
+        print(f"\n===== 'emart_price' 컬렉션의 오래된 문서 정리 시작 =====")
+        price_collection_ref = db.collection("emart_price")
+
+        # 쿼리를 사용하여 기준 시간보다 오래된 가격 문서를 찾습니다.
+        price_query = price_collection_ref.where(
+            filter=FieldFilter("last_updated", "<", one_day_ago_iso)
+        )
+        docs_to_delete = list(price_query.stream())
+
+        if not docs_to_delete:
+            print("✅ 삭제할 오래된 가격 문서가 없습니다.")
             return
 
-        # [수정] ID뿐만 아니라 기존 데이터도 함께 전달하여 DB 읽기 최소화
-        stale_products = {doc.id: doc.to_dict() for doc in docs_to_update}
-        print(
-            f"🔍 총 {len(stale_products)}개의 오래된 상품을 찾았습니다. 업데이트를 시작합니다.\n"
-        )
-        scrape_and_update_products_by_ids(stale_products)
+        print(f"🗑️ 총 {len(docs_to_delete)}개의 오래된 가격 문서를 삭제합니다...")
+
+        # Batch를 사용하여 모든 삭제 작업을 한 번에 처리합니다.
+        batch = db.batch()
+        for doc in docs_to_delete:
+            batch.delete(doc.reference)
+
+        batch.commit()
+        print(f"✨ 총 {len(docs_to_delete)}개의 오래된 가격 문서 삭제를 완료했습니다.")
+
     except Exception as e:
         print(f"\n🔥 작업 중 심각한 오류가 발생했습니다: {e}")
 
